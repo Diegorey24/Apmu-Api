@@ -15,11 +15,13 @@ const getAll = async function ({ page = 1, limit = 20, idAfiliado, aniomes, esta
     where += ' AND cc.Aniomes = @Aniomes';
     request.input('Aniomes', db.sql.Numeric(6, 0), aniomes);
   }
-  if (estado === 'pendiente') {
+    if (estado === 'pendiente') {
     where += ' AND cc.NroRecibo IS NULL';
-  } else if (estado === 'pagado') {
+    } else if (estado === 'pagado') {
     where += ' AND cc.NroRecibo IS NOT NULL';
-  }
+    } else if (estado === 'vencido') {
+    where += ' AND cc.NroRecibo IS NULL AND cc.FechaVto < GETDATE()';
+    }
 
   request.input('offset', db.sql.Int, offset);
   request.input('limit', db.sql.Int, limit);
