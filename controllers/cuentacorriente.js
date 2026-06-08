@@ -31,6 +31,9 @@ const create = async function (req, res) {
     if (!IdAfiliado || !Rubro || !Aniomes) {
       return res.status(400).send({ error: true, message: 'IdAfiliado, Rubro y Aniomes son requeridos' });
     }
+    if (req.body.Importe !== undefined && req.body.Importe !== null && req.body.Importe <= 0) {
+      return res.status(400).send({ error: true, message: 'El importe debe ser mayor a 0' });
+    }
     const id = await ccModel.create(req.body);
     res.status(201).send({ error: false, message: 'Cargo creado', data: { Id: id } });
   } catch (err) {
@@ -43,6 +46,9 @@ const update = async function (req, res) {
     const { IdAfiliado, Rubro, Aniomes } = req.body;
     if (!IdAfiliado || !Rubro || !Aniomes) {
       return res.status(400).send({ error: true, message: 'IdAfiliado, Rubro y Aniomes son requeridos' });
+    }
+    if (req.body.Importe !== undefined && req.body.Importe !== null && req.body.Importe <= 0) {
+      return res.status(400).send({ error: true, message: 'El importe debe ser mayor a 0' });
     }
     const rows = await ccModel.update(parseInt(req.params.id), req.body);
     if (!rows) return res.status(404).send({ error: true, message: 'Movimiento no encontrado o ya fue cobrado' });
