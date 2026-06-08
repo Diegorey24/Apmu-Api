@@ -6,12 +6,15 @@ const root      = require('../routes/root');
 const afiliados = require('../routes/afiliados');
 const autores   = require('../routes/autores');
 const rubros    = require('../routes/rubros');
+const cuentaCorriente = require('../routes/cuentacorriente');
+
 /* End Routes includes */
 
 router.use('/', root);
 router.use('/', afiliados);
 router.use('/', autores);
 router.use('/', rubros); 
+router.use('/', cuentaCorriente);
 
 // catch 404
 router.use(function (req, res) {
