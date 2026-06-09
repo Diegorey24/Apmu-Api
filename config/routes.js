@@ -9,6 +9,7 @@ const rubros    = require('../routes/rubros');
 const cuentaCorriente = require('../routes/cuentacorriente');
 const dashboard = require('../routes/dashboard');
 const editoriales = require('../routes/editoriales');
+const materias = require('../routes/materias');
 
 /* End Routes includes */
 
@@ -19,6 +20,7 @@ router.use('/', rubros);
 router.use('/', cuentaCorriente);
 router.use('/', dashboard);
 router.use('/', editoriales);
+router.use('/', materias);
 
 // catch 404
 router.use(function (req, res) {
