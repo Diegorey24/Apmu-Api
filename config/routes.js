@@ -8,6 +8,7 @@ const autores   = require('../routes/autores');
 const rubros    = require('../routes/rubros');
 const cuentaCorriente = require('../routes/cuentacorriente');
 const dashboard = require('../routes/dashboard');
+const editoriales = require('../routes/editoriales');
 
 /* End Routes includes */
 
@@ -17,6 +18,7 @@ router.use('/', autores);
 router.use('/', rubros); 
 router.use('/', cuentaCorriente);
 router.use('/', dashboard);
+router.use('/', editoriales);
 
 // catch 404
 router.use(function (req, res) {
