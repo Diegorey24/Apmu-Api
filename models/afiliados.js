@@ -137,4 +137,23 @@ const remove = async function (id) {
   return rs.rowsAffected[0];
 };
 
-module.exports = { getAll, getById, create, update, remove };
+const search = async function (texto) {
+  const pool = await db.getConnection();
+  const rs = await pool.request()
+    .input('texto', `%${texto}%`)
+    .query(`
+      SELECT TOP 10 Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido
+      FROM Afiliados
+      WHERE Activo = 1
+        AND (
+          PrimerNombre LIKE @texto OR
+          PrimerApellido LIKE @texto OR
+          SegundoApellido LIKE @texto OR
+          Documento LIKE @texto
+        )
+      ORDER BY PrimerApellido, PrimerNombre
+    `);
+  return rs.recordset;
+};
+
+module.exports = { getAll, getById, create, update, remove, search};

@@ -60,4 +60,15 @@ const remove = async function (req, res) {
   }
 };
 
-module.exports = { getAll, getOne, create, update, remove };
+const search = async function (req, res) {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.status(200).send({ error: false, data: [] });
+    const data = await afiliadosModel.search(q);
+    res.status(200).send({ error: false, data });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { getAll, getOne, create, update, remove, search };
