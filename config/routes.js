@@ -11,6 +11,7 @@ const dashboard = require('../routes/dashboard');
 const editoriales = require('../routes/editoriales');
 const materias = require('../routes/materias');
 const libros = require('../routes/libros');
+const prestamos = require('../routes/prestamos');
 
 /* End Routes includes */
 
@@ -23,6 +24,7 @@ router.use('/', dashboard);
 router.use('/', editoriales);
 router.use('/', materias);
 router.use('/', libros);
+router.use('/', prestamos);
 
 // catch 404
 router.use(function (req, res) {

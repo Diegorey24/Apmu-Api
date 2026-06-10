@@ -58,10 +58,9 @@ const create = async function (data) {
     .input('tipo', data.tipo)
     .input('material', data.material || null)
     .input('stock', data.stock || 0)
-    .input('fechaAlta', new Date())
     .query(`
-      INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, FechaAlta)
-      VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, @fechaAlta)
+    INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, FechaAlta)
+    VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, GETDATE())
     `);
   return nextId;
 };
