@@ -58,9 +58,10 @@ const create = async function (data) {
     .input('tipo', data.tipo)
     .input('material', data.material || null)
     .input('stock', data.stock || 0)
+    .input('costo', data.tipo === 'Estudio' ? (data.costo || null) : null)
     .query(`
-    INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, FechaAlta)
-    VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, GETDATE())
+    INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, Costo, FechaAlta)
+    VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, @costo, GETDATE())
     `);
   return nextId;
 };
@@ -77,11 +78,12 @@ const update = async function (id, data) {
     .input('tipo', data.tipo)
     .input('material', data.material || null)
     .input('stock', data.stock)
+    .input('costo', data.tipo === 'Estudio' ? (data.costo || null) : null)
     .query(`
       UPDATE Libros SET
         ISBN = @isbn, Nombre = @nombre, Edicion = @edicion,
         IdEditorial = @idEditorial, IdMateria = @idMateria,
-        Tipo = @tipo, Material = @material, Stock = @stock
+        Tipo = @tipo, Material = @material, Stock = @stock, Costo = @costo
       WHERE Id = @id
     `);
 };
