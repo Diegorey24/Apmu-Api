@@ -4,11 +4,14 @@ const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
   let query = `
     SELECT 
-      Id, Numero, Cliente_Id, TipoSolicitud, Finalidad,
-      CapitalInicial, CantidadCuotas, CuotasPagas, MontoCuotas,
-      SaldoCapital, SaldoInteres, DiasAtraso,
-      Estado, Moneda, Frecuencia, FechaOtorgado, TasaInteres, TasaMora
-    FROM Creditos
+      c.Id, c.Numero, c.Cliente_Id, c.TipoSolicitud, c.Finalidad,
+      c.CapitalInicial, c.CantidadCuotas, c.CuotasPagas, c.MontoCuotas,
+      c.SaldoCapital, c.SaldoInteres, c.DiasAtraso,
+      c.Estado, c.Moneda, c.Frecuencia, c.FechaOtorgado, c.TasaInteres, c.TasaMora,
+      ch.NombreCompleto AS NombreSocio,
+      ch.Documento AS DocumentoSocio
+    FROM Creditos c
+    LEFT JOIN ClientesHistorico ch ON c.Cliente_Id = ch.Id
     WHERE 1=1
   `;
   const request = pool.request();
@@ -55,8 +58,12 @@ const getById = async function (id) {
   const pool = await db.getConnection();
   const rs = await pool.request()
     .input('id', id)
-    .query('SELECT * FROM Creditos WHERE Id = @id');
+    .query(`
+      SELECT c.*, ch.NombreCompleto AS NombreSocio, ch.Documento AS DocumentoSocio
+      FROM Creditos c
+      LEFT JOIN ClientesHistorico ch ON c.Cliente_Id = ch.Id
+      WHERE c.Id = @id
+    `);
   return rs.recordset[0];
 };
-
 module.exports = { getAll, getById };
