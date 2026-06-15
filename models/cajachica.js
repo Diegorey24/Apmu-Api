@@ -67,4 +67,21 @@ const remove = async function (id) {
     .query('DELETE FROM CajaChica WHERE Id = @id');
 };
 
-module.exports = { getAll, getResumen, create, update, remove };
+const getSaldoTotal = async function () {
+  const pool = await db.getConnection();
+  const rs = await pool.request().query(`
+    SELECT ISNULL(SUM(CASE WHEN Tipo = 'Entrada' THEN Importe ELSE -Importe END), 0) AS Saldo
+    FROM CajaChica
+  `);
+  return rs.recordset[0].Saldo;
+};
+
+const getById = async function (id) {
+  const pool = await db.getConnection();
+  const rs = await pool.request()
+    .input('id', id)
+    .query('SELECT * FROM CajaChica WHERE Id = @id');
+  return rs.recordset[0];
+};
+
+module.exports = { getAll, getResumen, getSaldoTotal, getById, create, update, remove };

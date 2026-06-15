@@ -22,6 +22,14 @@ const create = async (req, res) => {
   try {
     const err = validar(req.body);
     if (err) return res.status(400).send({ error: true, message: err });
+
+    if (req.body.tipo === 'Salida') {
+      const saldoActual = await model.getSaldoTotal();
+      if (parseFloat(req.body.importe) > saldoActual) {
+        return res.status(400).send({ error: true, message: 'No hay saldo suficiente en caja' });
+      }
+    }
+
     const id = await model.create(req.body);
     res.status(201).send({ error: false, data: { id } });
   } catch (err) {
@@ -33,6 +41,19 @@ const update = async (req, res) => {
   try {
     const err = validar(req.body);
     if (err) return res.status(400).send({ error: true, message: err });
+
+    const registroActual = await model.getById(req.params.id);
+    if (!registroActual) return res.status(404).send({ error: true, message: 'Movimiento no encontrado' });
+
+    const saldoActual = await model.getSaldoTotal();
+    const efectoActual = registroActual.Tipo === 'Entrada' ? parseFloat(registroActual.Importe) : -parseFloat(registroActual.Importe);
+    const efectoNuevo = req.body.tipo === 'Entrada' ? parseFloat(req.body.importe) : -parseFloat(req.body.importe);
+    const saldoNuevo = (saldoActual - efectoActual) + efectoNuevo;
+
+    if (saldoNuevo < 0) {
+      return res.status(400).send({ error: true, message: 'No hay saldo suficiente en caja para esta edición' });
+    }
+
     await model.update(req.params.id, req.body);
     res.status(200).send({ error: false });
   } catch (err) {
