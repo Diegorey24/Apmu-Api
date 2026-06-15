@@ -31,7 +31,7 @@ router.use('/', libros);
 router.use('/', prestamos);
 router.use('/', reportes);
 router.use('/', creditos);
-router.use('/cajachica');
+router.use('/', cajachica);
 
 // catch 404
 router.use(function (req, res) {
