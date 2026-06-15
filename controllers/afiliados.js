@@ -5,7 +5,8 @@ const getAll = async function (req, res) {
     const page   = parseInt(req.query.page)   || 1;
     const limit  = parseInt(req.query.limit)  || 20;
     const search = req.query.search || '';
-    const result = await afiliadosModel.getAll({ page, limit, search });
+    const activo = req.query.activo !== undefined ? parseInt(req.query.activo) : 1;
+    const result = await afiliadosModel.getAll({ page, limit, search, activo });
     res.status(200).send({ error: false, ...result });
   } catch (err) {
     res.status(500).send({ error: true, message: err.message });

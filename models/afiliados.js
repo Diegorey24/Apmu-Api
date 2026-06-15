@@ -1,11 +1,12 @@
 const db = require('../helpers/db');
 
-const getAll = async function ({ page = 1, limit = 20, search = '' }) {
+const getAll = async function ({ page = 1, limit = 20, search = '', activo = 1 }) {
   const pool = await db.getConnection();
   const offset = (page - 1) * limit;
 
-  let where = 'WHERE Activo = 1';
+  let where = 'WHERE Activo = @activo';
   const request = pool.request();
+  request.input('activo', db.sql.Bit, activo);
 
   if (search) {
     where += ' AND (PrimerNombre LIKE @search OR PrimerApellido LIKE @search OR Documento LIKE @search)';
@@ -19,7 +20,7 @@ const getAll = async function ({ page = 1, limit = 20, search = '' }) {
     SELECT *, COUNT(*) OVER() AS TotalRecords
     FROM Afiliados
     ${where}
-    ORDER BY Id
+    ORDER BY ${activo ? 'Id' : 'FechaBaja DESC'}
     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
   `);
 

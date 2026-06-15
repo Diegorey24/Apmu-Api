@@ -23,6 +23,9 @@ const getAll = async function (filtros = {}) {
     query += ' AND (l.Nombre LIKE @busqueda OR l.ISBN LIKE @busqueda)';
     request.input('busqueda', `%${filtros.busqueda}%`);
   }
+  if (filtros.stockBajo) {
+    query += ' AND l.FechaBaja IS NULL AND l.Stock <= 1';
+  }
 
   query += ' ORDER BY l.Nombre';
   const rs = await request.query(query);
