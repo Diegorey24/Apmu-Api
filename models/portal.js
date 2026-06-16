@@ -59,18 +59,33 @@ const getPendientes = async function () {
     SELECT up.Id, up.Documento, up.Email, up.Estado, up.FechaRegistro, up.IdAfiliado,
       a.PrimerNombre, a.PrimerApellido, a.SegundoApellido, a.Activo
     FROM UsuariosPortal up
-    LEFT JOIN Afiliados a ON up.IdAfiliado = a.Id
+    LEFT JOIN Afiliados a ON up.Documento = a.Documento AND a.Activo = 1
     WHERE up.Estado = 'Pendiente'
     ORDER BY up.FechaRegistro DESC
   `);
   return rs.recordset;
 };
 
-const aprobar = async function (id, idAfiliado, usuarioAdmin) {
+const aprobar = async function (id, usuarioAdmin) {
   const pool = await db.getConnection();
+
+  // Buscar el documento del usuario portal
+  const usuarioRes = await pool.request()
+    .input('id', id)
+    .query('SELECT Documento FROM UsuariosPortal WHERE Id = @id');
+  const usuario = usuarioRes.recordset[0];
+  if (!usuario) throw new Error('Solicitud no encontrada');
+
+  // Buscar afiliado por ese documento
+  const afiliadoRes = await pool.request()
+    .input('documento', usuario.Documento)
+    .query('SELECT Id FROM Afiliados WHERE Documento = @documento AND Activo = 1');
+  const afiliado = afiliadoRes.recordset[0];
+  if (!afiliado) throw new Error('No existe un afiliado activo con ese documento. Agregalo primero en Afiliados.');
+
   await pool.request()
     .input('id', id)
-    .input('idAfiliado', idAfiliado)
+    .input('idAfiliado', afiliado.Id)
     .input('usuario', usuarioAdmin)
     .query(`
       UPDATE UsuariosPortal SET

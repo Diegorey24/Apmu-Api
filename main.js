@@ -16,7 +16,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(
   security.authorizationBearer({
-    allowUrls: [],
+    allowUrls: [
+      { url: '/portal/registrar', method: 'POST' },
+      { url: '/portal/login', method: 'POST' },
+      { url: '/portal/mis-datos', method: 'GET' },
+    ],
   })
 );
 

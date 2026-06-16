@@ -48,9 +48,7 @@ const getPendientes = async (req, res) => {
 
 const aprobar = async (req, res) => {
   try {
-    const { idAfiliado } = req.body;
-    if (!idAfiliado) return res.status(400).send({ error: true, message: 'Debe vincular un afiliado' });
-    await model.aprobar(req.params.id, idAfiliado, req.body.usuarioAdmin || 'admin');
+    await model.aprobar(req.params.id, 'admin');
     res.status(200).send({ error: false });
   } catch (err) {
     res.status(500).send({ error: true, message: err.message });
