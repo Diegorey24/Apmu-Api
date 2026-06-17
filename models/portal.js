@@ -128,6 +128,25 @@ const getDatosAfiliado = async function (idAfiliado) {
       ORDER BY pc.FechaPrestamo DESC
     `);
 
+  // Líneas de cada préstamo
+  const lineas = await pool.request()
+    .input('id', idAfiliado)
+    .query(`
+      SELECT pl.Id, pl.IdPrestamo, pl.FechaPrestamo, pl.FechaVencimiento, pl.FechaDevolucion,
+        l.Nombre AS NombreLibro, l.Tipo, l.Costo
+      FROM PrestamoLinea pl
+      INNER JOIN PrestamoCabezal pc ON pl.IdPrestamo = pc.Id
+      INNER JOIN Libros l ON pl.IdLibro = l.Id
+      WHERE pc.IdAfiliado = @id
+      ORDER BY pl.IdPrestamo, pl.Id
+    `);
+
+  // Adjuntar líneas a cada préstamo
+  const prestamosConLineas = prestamos.recordset.map(p => ({
+    ...p,
+    lineas: lineas.recordset.filter(l => l.IdPrestamo === p.Id)
+  }));
+
   const aportes = await pool.request()
     .input('id', idAfiliado)
     .query(`
@@ -143,7 +162,7 @@ const getDatosAfiliado = async function (idAfiliado) {
 
   return {
     afiliado: afiliado.recordset[0],
-    prestamos: prestamos.recordset,
+    prestamos: prestamosConLineas,
     aportes: aportes.recordset,
   };
 };
