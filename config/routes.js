@@ -16,6 +16,7 @@ const reportes = require('../routes/reportes');
 const creditos = require('../routes/creditos');
 const cajachica = require('../routes/cajachica');
 const portal = require('../routes/portal');
+const usuariosWeb = require('../routes/usuariosWeb');
 
 /* End Routes includes */
 
@@ -33,6 +34,7 @@ router.use('/', reportes);
 router.use('/', creditos);
 router.use('/', cajachica);
 router.use('/', portal);
+router.use('/', usuariosWeb);
 
 // catch 404
 router.use(function (req, res) {
