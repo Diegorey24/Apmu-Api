@@ -56,4 +56,50 @@ const getProximosVencer = async function (req, res) {
   }
 };
 
-module.exports = { getStats, getProximosVencer };
+const getRecaudacionMensual = async function (req, res) {
+  try {
+    const pool = await db.getConnection();
+    const rs = await pool.request().query(`
+      SELECT TOP 12 Aniomes, SUM(Importe) AS Total
+      FROM CuentaCorriente
+      WHERE NroRecibo IS NOT NULL
+      GROUP BY Aniomes
+      ORDER BY Aniomes DESC
+    `);
+    res.status(200).send({ error: false, data: rs.recordset.reverse() });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+const getPrestamosPorEstado = async function (req, res) {
+  try {
+    const pool = await db.getConnection();
+    const rs = await pool.request().query(`
+      SELECT Estado, COUNT(*) AS Cantidad
+      FROM PrestamoCabezal
+      GROUP BY Estado
+    `);
+    res.status(200).send({ error: false, data: rs.recordset });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+const getLibrosMasPrestados = async function (req, res) {
+  try {
+    const pool = await db.getConnection();
+    const rs = await pool.request().query(`
+      SELECT TOP 10 l.Nombre, COUNT(pl.Id) AS Veces
+      FROM PrestamoLinea pl
+      INNER JOIN Libros l ON pl.IdLibro = l.Id
+      GROUP BY l.Id, l.Nombre
+      ORDER BY COUNT(pl.Id) DESC
+    `);
+    res.status(200).send({ error: false, data: rs.recordset });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { getStats, getProximosVencer, getRecaudacionMensual, getPrestamosPorEstado, getLibrosMasPrestados };
