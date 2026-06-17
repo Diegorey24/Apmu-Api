@@ -167,4 +167,20 @@ const getDatosAfiliado = async function (idAfiliado) {
   };
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado };
+const cambiarPassword = async function (idAfiliado, passwordActual, passwordNueva) {
+  const pool = await db.getConnection();
+  const rs = await pool.request()
+    .input('idAfiliado', idAfiliado)
+    .query('SELECT Id, Password FROM UsuariosPortal WHERE IdAfiliado = @idAfiliado AND Estado = \'Habilitado\'');
+
+  const usuario = rs.recordset[0];
+  if (!usuario) throw new Error('Usuario no encontrado');
+  if (passwordActual !== usuario.Password.trim()) throw new Error('La contraseña actual es incorrecta');
+
+  await pool.request()
+    .input('idAfiliado', idAfiliado)
+    .input('password', passwordNueva)
+    .query('UPDATE UsuariosPortal SET Password = @password WHERE IdAfiliado = @idAfiliado');
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword };

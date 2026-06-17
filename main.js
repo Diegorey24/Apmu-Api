@@ -20,6 +20,7 @@ app.use(
       { url: '/portal/registrar', method: 'POST' },
       { url: '/portal/login', method: 'POST' },
       { url: '/portal/mis-datos', method: 'GET' },
+      { url: '/portal/cambiar-password', method: 'PATCH' },
     ],
   })
 );

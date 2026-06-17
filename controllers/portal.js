@@ -77,4 +77,22 @@ const getMisDatos = async (req, res) => {
   }
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos };
+const cambiarPassword = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).send({ error: true, message: 'Sin autorización' });
+    const decoded = jwt.verify(token, SECRET_PORTAL);
+
+    const { passwordActual, passwordNueva } = req.body;
+    if (!passwordActual || !passwordNueva) return res.status(400).send({ error: true, message: 'Faltan datos' });
+    if (passwordNueva.length < 6) return res.status(400).send({ error: true, message: 'La contraseña nueva debe tener al menos 6 caracteres' });
+    if (passwordActual === passwordNueva) return res.status(400).send({ error: true, message: 'La nueva contraseña debe ser diferente a la actual' });
+
+    await model.cambiarPassword(decoded.idAfiliado, passwordActual, passwordNueva);
+    res.status(200).send({ error: false, message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    res.status(400).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword };

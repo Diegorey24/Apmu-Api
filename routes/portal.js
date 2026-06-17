@@ -8,5 +8,6 @@ router.get('/portal/mis-datos', controller.getMisDatos);
 router.get('/portal/pendientes', controller.getPendientes);
 router.patch('/portal/:id/aprobar', controller.aprobar);
 router.patch('/portal/:id/rechazar', controller.rechazar);
+router.patch('/portal/cambiar-password', controller.cambiarPassword);
 
 module.exports = router;
