@@ -2,8 +2,8 @@ const afiliadosModel = require('../models/afiliados');
 
 const getAll = async function (req, res) {
   try {
-    const page   = parseInt(req.query.page)   || 1;
-    const limit  = parseInt(req.query.limit)  || 20;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
     const search = req.query.search || '';
     const activo = req.query.activo !== undefined ? parseInt(req.query.activo) : 1;
     const result = await afiliadosModel.getAll({ page, limit, search, activo });
@@ -53,7 +53,9 @@ const update = async function (req, res) {
 
 const remove = async function (req, res) {
   try {
-    const rows = await afiliadosModel.remove(parseInt(req.params.id));
+    const { idMotivo, observaciones } = req.body;
+    if (!idMotivo) return res.status(400).send({ error: true, message: 'El motivo de baja es obligatorio' });
+    const rows = await afiliadosModel.remove(parseInt(req.params.id), idMotivo, observaciones);
     if (!rows) return res.status(404).send({ error: true, message: 'Afiliado no encontrado' });
     res.status(200).send({ error: false, message: 'Afiliado dado de baja' });
   } catch (err) {

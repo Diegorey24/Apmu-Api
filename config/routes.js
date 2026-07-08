@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 /* Routes includes */
-const root      = require('../routes/root');
+const root = require('../routes/root');
 const afiliados = require('../routes/afiliados');
-const autores   = require('../routes/autores');
-const rubros    = require('../routes/rubros');
+const autores = require('../routes/autores');
+const rubros = require('../routes/rubros');
 const cuentaCorriente = require('../routes/cuentacorriente');
 const dashboard = require('../routes/dashboard');
 const editoriales = require('../routes/editoriales');
@@ -17,13 +17,17 @@ const creditos = require('../routes/creditos');
 const cajachica = require('../routes/cajachica');
 const portal = require('../routes/portal');
 const usuariosWeb = require('../routes/usuariosWeb');
+const categorias = require('../routes/categorias');
+const ubicaciones = require('../routes/ubicaciones');
+const motivosbaja = require('../routes/motivosbaja');
+const hijos = require('../routes/hijos');
 
 /* End Routes includes */
 
 router.use('/', root);
 router.use('/', afiliados);
 router.use('/', autores);
-router.use('/', rubros); 
+router.use('/', rubros);
 router.use('/', cuentaCorriente);
 router.use('/', dashboard);
 router.use('/', editoriales);
@@ -35,6 +39,10 @@ router.use('/', creditos);
 router.use('/', cajachica);
 router.use('/', portal);
 router.use('/', usuariosWeb);
+router.use('/', categorias);
+router.use('/', ubicaciones);
+router.use('/', motivosbaja);
+router.use('/', hijos);
 
 // catch 404
 router.use(function (req, res) {
