@@ -95,4 +95,87 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword };
+const actualizarContacto = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).send({ error: true, message: 'Sin autorización' });
+    const decoded = jwt.verify(token, SECRET_PORTAL);
+    if (!decoded.idAfiliado) return res.status(403).send({ error: true, message: 'Afiliado no vinculado' });
+
+    const { mail, celular, telefono, domicilio } = req.body;
+    const pool = await require('../helpers/db').getConnection();
+    await pool.request()
+      .input('id', decoded.idAfiliado)
+      .input('mail', mail || null)
+      .input('celular', celular || null)
+      .input('telefono', telefono || null)
+      .input('domicilio', domicilio || null)
+      .query(`
+        UPDATE Afiliados SET
+          Mail = @mail, Celular = @celular,
+          Telefono = @telefono, Domicilio = @domicilio,
+          FechaUltimaModificacion = GETDATE()
+        WHERE Id = @id
+      `);
+    res.status(200).send({ error: false });
+  } catch (err) {
+    res.status(401).send({ error: true, message: 'Token inválido' });
+  }
+};
+
+const getMisHijos = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).send({ error: true, message: 'Sin autorización' });
+    const decoded = jwt.verify(token, SECRET_PORTAL);
+    if (!decoded.idAfiliado) return res.status(403).send({ error: true, message: 'Afiliado no vinculado' });
+
+    const pool = await require('../helpers/db').getConnection();
+    const rs = await pool.request()
+      .input('id', decoded.idAfiliado)
+      .query(`
+        SELECT Id, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido,
+          Documento, FechaNacimiento, Validado
+        FROM Hijos WHERE IdAfiliado = @id
+        ORDER BY PrimerApellido, PrimerNombre
+      `);
+    res.status(200).send({ error: false, data: rs.recordset });
+  } catch (err) {
+    res.status(401).send({ error: true, message: 'Token inválido' });
+  }
+};
+
+const solicitarLibro = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).send({ error: true, message: 'Sin autorización' });
+    const decoded = jwt.verify(token, SECRET_PORTAL);
+    if (!decoded.idAfiliado) return res.status(403).send({ error: true, message: 'Afiliado no vinculado' });
+
+    const { idLibro } = req.body;
+    if (!idLibro) return res.status(400).send({ error: true, message: 'El libro es obligatorio' });
+
+    const model = require('../models/solicitudesprestamo');
+    const id = await model.create(decoded.idAfiliado, idLibro);
+    res.status(201).send({ error: false, data: { id } });
+  } catch (err) {
+    res.status(400).send({ error: true, message: err.message });
+  }
+};
+
+const getMisSolicitudes = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).send({ error: true, message: 'Sin autorización' });
+    const decoded = jwt.verify(token, SECRET_PORTAL);
+    if (!decoded.idAfiliado) return res.status(403).send({ error: true, message: 'Afiliado no vinculado' });
+
+    const model = require('../models/solicitudesprestamo');
+    const data = await model.getByAfiliado(decoded.idAfiliado);
+    res.status(200).send({ error: false, data });
+  } catch (err) {
+    res.status(401).send({ error: true, message: 'Token inválido' });
+  }
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes };

@@ -9,5 +9,9 @@ router.get('/portal/pendientes', controller.getPendientes);
 router.patch('/portal/:id/aprobar', controller.aprobar);
 router.patch('/portal/:id/rechazar', controller.rechazar);
 router.patch('/portal/cambiar-password', controller.cambiarPassword);
+router.patch('/portal/contacto', controller.actualizarContacto);
+router.get('/portal/mis-hijos', controller.getMisHijos);
+router.post('/portal/solicitar-libro', controller.solicitarLibro);
+router.get('/portal/mis-solicitudes', controller.getMisSolicitudes);
 
 module.exports = router;

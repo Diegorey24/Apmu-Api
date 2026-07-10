@@ -21,6 +21,11 @@ const categorias = require('../routes/categorias');
 const ubicaciones = require('../routes/ubicaciones');
 const motivosbaja = require('../routes/motivosbaja');
 const hijos = require('../routes/hijos');
+const solicitudesAfiliacion = require('../routes/solicitudesafiliacion');
+const importacionaportes = require('../routes/importacionaportes');
+const licenciasgremiales = require('../routes/licenciasgremiales');
+const beneficios = require('../routes/beneficios');
+const solicitudesprestamo = require('../routes/solicitudesprestamo');
 
 /* End Routes includes */
 
@@ -43,6 +48,12 @@ router.use('/', categorias);
 router.use('/', ubicaciones);
 router.use('/', motivosbaja);
 router.use('/', hijos);
+router.use('/', solicitudesAfiliacion);
+router.use('/', importacionaportes);
+router.use('/', licenciasgremiales);
+router.use('/', beneficios);
+router.use('/', solicitudesprestamo);
+
 
 // catch 404
 router.use(function (req, res) {

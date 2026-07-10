@@ -4,5 +4,10 @@ const router = Router();
 
 router.get('/reportes/deuda/:idAfiliado', controller.getDeudaAfiliado);
 router.get('/reportes/conciliacion', controller.getConciliacion);
+router.get('/reportes/exportar/afiliados', controller.exportarAfiliados);
+router.get('/reportes/exportar/bajas', controller.exportarBajas);
+router.get('/reportes/exportar/aportes', controller.exportarAportes);
+router.get('/reportes/exportar/prestamos', controller.exportarPrestamos);
+router.get('/reportes/exportar/licencias', controller.exportarLicencias);
 
 module.exports = router;

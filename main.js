@@ -21,6 +21,15 @@ app.use(
       { url: '/portal/login', method: 'POST' },
       { url: '/portal/mis-datos', method: 'GET' },
       { url: '/portal/cambiar-password', method: 'PATCH' },
+      { url: '/solicitudes-afiliacion', method: 'POST' },
+      { url: '/solicitudes-afiliacion', method: 'POST' },
+      { url: '/ubicaciones', method: 'GET' },
+      { url: '/portal/contacto', method: 'PATCH' },
+      { url: '/portal/mis-hijos', method: 'GET' },
+      { url: '/portal/solicitar-libro', method: 'POST' },
+      { url: '/portal/mis-solicitudes', method: 'GET' },
+      { url: '/libros', method: 'GET' },
+      { url: '/portal/mis-solicitudes', method: 'GET' },
     ],
   })
 );
