@@ -13,5 +13,7 @@ router.patch('/portal/contacto', controller.actualizarContacto);
 router.get('/portal/mis-hijos', controller.getMisHijos);
 router.post('/portal/solicitar-libro', controller.solicitarLibro);
 router.get('/portal/mis-solicitudes', controller.getMisSolicitudes);
+router.patch('/portal/:id/reset-password', controller.resetPassword);
+router.delete('/portal/:id', controller.eliminarSolicitud);
 
 module.exports = router;

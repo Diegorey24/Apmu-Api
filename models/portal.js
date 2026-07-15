@@ -183,4 +183,23 @@ const cambiarPassword = async function (idAfiliado, passwordActual, passwordNuev
     .query('UPDATE UsuariosPortal SET Password = @password WHERE IdAfiliado = @idAfiliado');
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword };
+const resetPassword = async function (id, nuevaPassword) {
+  const pool = await db.getConnection();
+  const rs = await pool.request()
+    .input('id', id)
+    .query('SELECT Id, Estado FROM UsuariosPortal WHERE Id = @id');
+  if (!rs.recordset[0]) throw new Error('Usuario no encontrado');
+  await pool.request()
+    .input('id', id)
+    .input('password', nuevaPassword)
+    .query('UPDATE UsuariosPortal SET Password = @password WHERE Id = @id');
+};
+
+const eliminar = async function (id) {
+  const pool = await db.getConnection();
+  await pool.request()
+    .input('id', id)
+    .query('DELETE FROM UsuariosPortal WHERE Id = @id');
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword, resetPassword, eliminar };

@@ -40,12 +40,18 @@ const importar = async function (filas, aniomes, idRubro) {
                 continue;
             }
 
+            // Insertar aporte
             // Calcular próximo Id
             const maxIdRes = await pool.request()
                 .query('SELECT ISNULL(MAX(Id), 0) + 1 AS nextId FROM CuentaCorriente');
             const nextId = maxIdRes.recordset[0].nextId;
 
-            // Insertar aporte
+            // NroRecibo correlativo
+            const maxReciboRes = await pool.request()
+                .query('SELECT ISNULL(MAX(NroRecibo), 0) + 1 AS nextRecibo FROM CuentaCorriente WHERE NroRecibo IS NOT NULL');
+            const nextRecibo = maxReciboRes.recordset[0].nextRecibo;
+
+            // Insertar aporte como pagado
             const mes = String(aniomes).substring(0, 4) + '-' + String(aniomes).substring(4, 6) + '-01';
             await pool.request()
                 .input('id', nextId)
@@ -54,9 +60,12 @@ const importar = async function (filas, aniomes, idRubro) {
                 .input('importe', parseFloat(fila.aporte) || 0)
                 .input('aniomes', aniomes)
                 .input('mes', mes)
+                .input('nroRecibo', nextRecibo)
+                .input('fechaPago', new Date())
+                .input('formaPago', 'Planilla')
                 .query(`
-          INSERT INTO CuentaCorriente (Id, IdAfiliado, Rubro, Importe, Aniomes, Mes)
-          VALUES (@id, @idAfiliado, @rubro, @importe, @aniomes, @mes)
+          INSERT INTO CuentaCorriente (Id, IdAfiliado, Rubro, Importe, Aniomes, Mes, NroRecibo, FechaPago, FormaPago)
+          VALUES (@id, @idAfiliado, @rubro, @importe, @aniomes, @mes, @nroRecibo, @fechaPago, @formaPago)
         `);
 
             resultados.importados++;

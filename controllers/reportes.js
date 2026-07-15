@@ -108,8 +108,14 @@ const XLSX = require('xlsx');
 
 const exportarAfiliados = async (req, res) => {
   try {
+    const { fechaDesde, fechaHasta } = req.query;
     const pool = await db.getConnection();
-    const rs = await pool.request().query(`
+    const request = pool.request();
+    let where = '';
+    if (fechaDesde) { where += ' AND a.FechaIngreso >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
+    if (fechaHasta) { where += ' AND a.FechaIngreso <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+
+    const rs = await request.query(`
       SELECT 
         a.Id, a.Documento, a.NroFuncionario,
         a.PrimerNombre, a.SegundoNombre, a.PrimerApellido, a.SegundoApellido,
@@ -122,7 +128,7 @@ const exportarAfiliados = async (req, res) => {
       FROM Afiliados a
       LEFT JOIN Categorias c ON a.IdCategoria = c.Id
       LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
-      WHERE a.Activo = 1
+      WHERE a.Activo = 1 ${where}
       ORDER BY a.PrimerApellido, a.PrimerNombre
     `);
 
@@ -141,8 +147,14 @@ const exportarAfiliados = async (req, res) => {
 
 const exportarBajas = async (req, res) => {
   try {
+    const { fechaDesde, fechaHasta } = req.query;
     const pool = await db.getConnection();
-    const rs = await pool.request().query(`
+    const request = pool.request();
+    let where = '';
+    if (fechaDesde) { where += ' AND ab.FechaBaja >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
+    if (fechaHasta) { where += ' AND ab.FechaBaja <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+
+    const rs = await request.query(`
       SELECT 
         a.Documento, a.NroFuncionario,
         a.PrimerNombre, a.PrimerApellido, a.SegundoApellido,
@@ -150,6 +162,7 @@ const exportarBajas = async (req, res) => {
       FROM AfiliadosBajados ab
       INNER JOIN Afiliados a ON ab.IdAfiliado = a.Id
       INNER JOIN MotivosBaja mb ON ab.IdMotivo = mb.Id
+      WHERE 1=1 ${where}
       ORDER BY ab.FechaBaja DESC
     `);
 

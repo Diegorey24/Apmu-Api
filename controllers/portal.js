@@ -178,4 +178,24 @@ const getMisSolicitudes = async (req, res) => {
   }
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes };
+const resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) return res.status(400).send({ error: true, message: 'La contraseña debe tener al menos 6 caracteres' });
+    await model.resetPassword(req.params.id, password);
+    res.status(200).send({ error: false });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+const eliminarSolicitud = async (req, res) => {
+  try {
+    await model.eliminar(req.params.id);
+    res.status(200).send({ error: false });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes, resetPassword, eliminarSolicitud };

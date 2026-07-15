@@ -12,9 +12,12 @@ const create = async function (data) {
     const maxIdRes = await pool.request()
         .query('SELECT ISNULL(MAX(Id), 0) + 1 AS nextId FROM Ubicaciones');
     const nextId = maxIdRes.recordset[0].nextId;
+    const maxCodRes = await pool.request()
+        .query('SELECT ISNULL(MAX(Codigo), 0) + 1 AS nextCodigo FROM Ubicaciones');
+    const nextCodigo = maxCodRes.recordset[0].nextCodigo;
     await pool.request()
         .input('id', nextId)
-        .input('codigo', data.codigo)
+        .input('codigo', nextCodigo)
         .input('tipo', data.tipo)
         .input('nombre', data.nombre)
         .query(`INSERT INTO Ubicaciones (Id, Codigo, Tipo, Nombre)
@@ -26,10 +29,9 @@ const update = async function (id, data) {
     const pool = await db.getConnection();
     await pool.request()
         .input('id', id)
-        .input('codigo', data.codigo)
         .input('tipo', data.tipo)
         .input('nombre', data.nombre)
-        .query(`UPDATE Ubicaciones SET Codigo = @codigo, Tipo = @tipo, Nombre = @nombre
+        .query(`UPDATE Ubicaciones SET Tipo = @tipo, Nombre = @nombre
             WHERE Id = @id`);
 };
 
