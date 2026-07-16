@@ -19,7 +19,8 @@ const getAll = async function ({ page = 1, limit = 20, search = '', activo = 1 }
   const rs = await request.query(`
   SELECT a.*, 
     c.Nombre AS NombreCategoria,
-    u.Nombre AS NombreUbicacion
+    u.Nombre AS NombreUbicacion,
+    COUNT(*) OVER() AS TotalRecords
   FROM Afiliados a
   LEFT JOIN Categorias c ON a.IdCategoria = c.Id
   LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id

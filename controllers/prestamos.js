@@ -2,9 +2,13 @@ const model = require('../models/prestamos');
 
 const getAll = async (req, res) => {
   try {
-    const { estado, idAfiliado } = req.query;
-    const data = await model.getAll({ estado, idAfiliado });
-    res.status(200).send({ error: false, data });
+    const { estado, idAfiliado, page, limit } = req.query;
+    const result = await model.getAll({
+      estado, idAfiliado,
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+    });
+    res.status(200).send({ error: false, ...result });
   } catch (err) {
     res.status(500).send({ error: true, message: err.message });
   }

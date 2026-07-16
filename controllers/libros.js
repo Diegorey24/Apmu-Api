@@ -2,9 +2,14 @@ const model = require('../models/libros');
 
 const getAll = async (req, res) => {
   try {
-    const { tipo, idMateria, busqueda, stockBajo } = req.query;
-    const data = await model.getAll({ tipo, idMateria, busqueda, stockBajo: stockBajo === '1' || stockBajo === 'true' });
-    res.status(200).send({ error: false, data });
+    const { tipo, idMateria, busqueda, stockBajo, page, limit } = req.query;
+    const result = await model.getAll({
+      tipo, idMateria, busqueda,
+      stockBajo: stockBajo === '1' || stockBajo === 'true',
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+    });
+    res.status(200).send({ error: false, ...result });
   } catch (err) {
     res.status(500).send({ error: true, message: err.message });
   }

@@ -2,38 +2,49 @@ const db = require('../helpers/db');
 
 const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
-  let query = `
-    SELECT 
-      pc.Id, pc.FechaPrestamo, pc.Estado,
-      a.Id AS IdAfiliado,
-      a.PrimerNombre + ' ' + a.PrimerApellido + 
-        ISNULL(' ' + a.SegundoApellido, '') AS NombreAfiliado,
-      a.Documento,
-      COUNT(pl.Id) AS CantLibros,
-      SUM(CASE WHEN pl.FechaDevolucion IS NOT NULL THEN 1 ELSE 0 END) AS CantDevueltos
-    FROM PrestamoCabezal pc
-    INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
-    LEFT JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
-    WHERE 1=1
-  `;
+  const page = filtros.page || 1;
+  const limit = filtros.limit || 20;
+  const offset = (page - 1) * limit;
+
+  let where = '';
   const request = pool.request();
 
   if (filtros.estado) {
-    query += ' AND pc.Estado = @estado';
+    where += ' AND pc.Estado = @estado';
     request.input('estado', filtros.estado);
   }
   if (filtros.idAfiliado) {
-    query += ' AND pc.IdAfiliado = @idAfiliado';
+    where += ' AND pc.IdAfiliado = @idAfiliado';
     request.input('idAfiliado', filtros.idAfiliado);
   }
 
-  query += ' GROUP BY pc.Id, pc.FechaPrestamo, pc.Estado, a.Id, a.PrimerNombre, a.PrimerApellido, a.SegundoApellido, a.Documento';
-  query += ' ORDER BY pc.FechaPrestamo DESC';
+  request.input('offset', offset);
+  request.input('limit', limit);
 
-  const rs = await request.query(query);
-  return rs.recordset;
+  const rs = await request.query(`
+    SELECT *, COUNT(*) OVER() AS TotalRecords FROM (
+      SELECT 
+        pc.Id, pc.FechaPrestamo, pc.Estado,
+        a.Id AS IdAfiliado,
+        a.PrimerNombre + ' ' + a.PrimerApellido + 
+          ISNULL(' ' + a.SegundoApellido, '') AS NombreAfiliado,
+        a.Documento,
+        COUNT(pl.Id) AS CantLibros,
+        SUM(CASE WHEN pl.FechaDevolucion IS NOT NULL THEN 1 ELSE 0 END) AS CantDevueltos
+      FROM PrestamoCabezal pc
+      INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
+      LEFT JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
+      WHERE 1=1 ${where}
+      GROUP BY pc.Id, pc.FechaPrestamo, pc.Estado, a.Id, a.PrimerNombre, a.PrimerApellido, a.SegundoApellido, a.Documento
+    ) sub
+    ORDER BY FechaPrestamo DESC
+    OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+  `);
+
+  const total = rs.recordset.length > 0 ? rs.recordset[0].TotalRecords : 0;
+  const data = rs.recordset.map(({ TotalRecords, ...row }) => row);
+  return { data, total, page, limit };
 };
-
 const getById = async function (id) {
   const pool = await db.getConnection();
 
@@ -107,7 +118,7 @@ const create = async function (idAfiliado, lineas) {
       .input('idPrestamo', idCabezal)
       .input('idLibro', linea.idLibro)
       .input('fechaVencimiento', linea.fechaVencimiento || null)
-    .query(`INSERT INTO PrestamoLinea (Id, IdPrestamo, IdLibro, FechaPrestamo, FechaVencimiento)
+      .query(`INSERT INTO PrestamoLinea (Id, IdPrestamo, IdLibro, FechaPrestamo, FechaVencimiento)
         VALUES (@id, @idPrestamo, @idLibro, GETDATE(), @fechaVencimiento)`);
 
     await pool.request()

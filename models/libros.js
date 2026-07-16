@@ -2,8 +2,13 @@ const db = require('../helpers/db');
 
 const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
+  const page = filtros.page || 1;
+  const limit = filtros.limit || 20;
+  const offset = (page - 1) * limit;
+
   let query = `
-    SELECT l.*, e.Nombre AS NombreEditorial, m.Nombre AS NombreMateria
+    SELECT l.*, e.Nombre AS NombreEditorial, m.Nombre AS NombreMateria,
+      COUNT(*) OVER() AS TotalRecords
     FROM Libros l
     LEFT JOIN Editoriales e ON l.IdEditorial = e.Id
     LEFT JOIN Materias m ON l.IdMateria = m.Id
@@ -27,9 +32,14 @@ const getAll = async function (filtros = {}) {
     query += ' AND l.FechaBaja IS NULL AND l.Stock <= 1';
   }
 
-  query += ' ORDER BY l.Nombre';
+  query += ' ORDER BY l.Nombre OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY';
+  request.input('offset', offset);
+  request.input('limit', limit);
+
   const rs = await request.query(query);
-  return rs.recordset;
+  const total = rs.recordset.length > 0 ? rs.recordset[0].TotalRecords : 0;
+  const data = rs.recordset.map(({ TotalRecords, ...row }) => row);
+  return { data, total, page, limit };
 };
 
 const getById = async function (id) {
