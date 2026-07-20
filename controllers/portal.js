@@ -198,4 +198,25 @@ const eliminarSolicitud = async (req, res) => {
   }
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes, resetPassword, eliminarSolicitud };
+const crearDesdeAdmin = async (req, res) => {
+  try {
+    const { documento, password } = req.body;
+    if (!documento?.trim()) return res.status(400).send({ error: true, message: 'El documento es obligatorio' });
+    if (!password || password.length < 6) return res.status(400).send({ error: true, message: 'La contraseña debe tener al menos 6 caracteres' });
+    const id = await model.crearDesdeAdmin(documento.trim(), password);
+    res.status(201).send({ error: false, data: { id } });
+  } catch (err) {
+    res.status(400).send({ error: true, message: err.message });
+  }
+};
+
+const getAllUsuarios = async (req, res) => {
+  try {
+    const data = await model.getAll();
+    res.status(200).send({ error: false, data });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes, resetPassword, eliminarSolicitud, crearDesdeAdmin, getAllUsuarios };

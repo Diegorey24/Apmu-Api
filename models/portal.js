@@ -202,4 +202,53 @@ const eliminar = async function (id) {
     .query('DELETE FROM UsuariosPortal WHERE Id = @id');
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword, resetPassword, eliminar };
+const crearDesdeAdmin = async function (documento, password) {
+  const pool = await db.getConnection();
+
+  const existe = await pool.request()
+    .input('documento', documento)
+    .query('SELECT Id FROM UsuariosPortal WHERE Documento = @documento');
+  if (existe.recordset.length > 0) throw new Error('Ya existe un usuario portal con ese documento');
+
+  const afiliado = await pool.request()
+    .input('documento', documento)
+    .query('SELECT Id FROM Afiliados WHERE Documento = @documento AND Activo = 1');
+  if (!afiliado.recordset[0]) throw new Error('No existe un afiliado activo con ese documento');
+
+  const maxId = await pool.request()
+    .query('SELECT ISNULL(MAX(Id), 0) + 1 AS nextId FROM UsuariosPortal');
+  const nextId = maxId.recordset[0].nextId;
+
+  const mail = await pool.request()
+    .input('id', afiliado.recordset[0].Id)
+    .query('SELECT Mail FROM Afiliados WHERE Id = @id');
+
+  await pool.request()
+    .input('id', nextId)
+    .input('documento', documento)
+    .input('email', mail.recordset[0]?.Mail || null)
+    .input('password', password)
+    .input('idAfiliado', afiliado.recordset[0].Id)
+    .query(`
+      INSERT INTO UsuariosPortal (Id, Documento, Email, Password, Estado, IdAfiliado, FechaRegistro, FechaAprobacion, UsuarioAprobacion)
+      VALUES (@id, @documento, @email, @password, 'Habilitado', @idAfiliado, GETDATE(), GETDATE(), 'admin')
+    `);
+
+  return nextId;
+};
+
+const getAll = async function () {
+  const pool = await db.getConnection();
+  const rs = await pool.request().query(`
+    SELECT up.Id, up.Documento, up.Email, up.Estado, up.FechaRegistro, up.FechaAprobacion,
+      a.PrimerNombre, a.PrimerApellido, a.SegundoApellido
+    FROM UsuariosPortal up
+    LEFT JOIN Afiliados a ON up.IdAfiliado = a.Id
+    ORDER BY up.FechaRegistro DESC
+  `);
+  return rs.recordset;
+};
+
+
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword, resetPassword, eliminar, crearDesdeAdmin, getAll };

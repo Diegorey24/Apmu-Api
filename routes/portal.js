@@ -4,8 +4,10 @@ const router = Router();
 
 router.post('/portal/registrar', controller.registrar);
 router.post('/portal/login', controller.login);
+router.post('/portal/crear-usuario', controller.crearDesdeAdmin);
 router.get('/portal/mis-datos', controller.getMisDatos);
 router.get('/portal/pendientes', controller.getPendientes);
+router.get('/portal/usuarios', controller.getAllUsuarios);
 router.patch('/portal/:id/aprobar', controller.aprobar);
 router.patch('/portal/:id/rechazar', controller.rechazar);
 router.patch('/portal/cambiar-password', controller.cambiarPassword);
@@ -15,5 +17,6 @@ router.post('/portal/solicitar-libro', controller.solicitarLibro);
 router.get('/portal/mis-solicitudes', controller.getMisSolicitudes);
 router.patch('/portal/:id/reset-password', controller.resetPassword);
 router.delete('/portal/:id', controller.eliminarSolicitud);
+
 
 module.exports = router;

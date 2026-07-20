@@ -9,7 +9,7 @@ const getAll = async function ({ page = 1, limit = 20, search = '', activo = 1 }
   request.input('activo', db.sql.Bit, activo);
 
   if (search) {
-    where += ' AND (PrimerNombre LIKE @search OR PrimerApellido LIKE @search OR Documento LIKE @search)';
+    where += ' AND (PrimerNombre LIKE @search OR PrimerApellido LIKE @search OR Documento LIKE @search OR NroFuncionario LIKE @search)';
     request.input('search', db.sql.VarChar(100), `%${search}%`);
   }
 
@@ -195,7 +195,8 @@ const search = async function (texto) {
           PrimerNombre LIKE @texto OR
           PrimerApellido LIKE @texto OR
           SegundoApellido LIKE @texto OR
-          Documento LIKE @texto
+          Documento LIKE @texto OR
+          NroFuncionario LIKE @texto
         )
       ORDER BY PrimerApellido, PrimerNombre
     `);

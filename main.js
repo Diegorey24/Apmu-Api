@@ -30,6 +30,7 @@ app.use(
       { url: '/portal/mis-solicitudes', method: 'GET' },
       { url: '/libros', method: 'GET' },
       { url: '/portal/mis-solicitudes', method: 'GET' },
+      { url: '^/prestamos/\\d+/pdf', method: 'GET' },
     ],
   })
 );

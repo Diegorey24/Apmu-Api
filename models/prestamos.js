@@ -1,4 +1,5 @@
 const db = require('../helpers/db');
+const PDFDocument = require('pdfkit');
 
 const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
@@ -57,7 +58,8 @@ const getById = async function (id) {
         a.Id AS IdAfiliado,
         a.PrimerNombre + ' ' + a.PrimerApellido +
           ISNULL(' ' + a.SegundoApellido, '') AS NombreAfiliado,
-        a.Documento
+        a.Documento,
+        a.NroFuncionario
       FROM PrestamoCabezal pc
       INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
       WHERE pc.Id = @id
@@ -82,7 +84,6 @@ const getById = async function (id) {
 };
 
 const create = async function (idAfiliado, lineas) {
-  // lineas = [{ idLibro, fechaVencimiento }]
   const pool = await db.getConnection();
 
   // Verificar stock de cada libro
@@ -126,6 +127,27 @@ const create = async function (idAfiliado, lineas) {
       .query('UPDATE Libros SET Stock = Stock - 1 WHERE Id = @id');
 
     nextIdLinea++;
+  }
+
+  // Cobro de libros de estudio ($200 c/u)
+  const librosEstudio = await pool.request()
+    .input('idPrestamo', idCabezal)
+    .query(`
+      SELECT COUNT(*) AS cant FROM PrestamoLinea pl
+      INNER JOIN Libros l ON pl.IdLibro = l.Id
+      WHERE pl.IdPrestamo = @idPrestamo AND l.Tipo = 'Estudio'
+    `);
+  const cantEstudio = librosEstudio.recordset[0].cant;
+  if (cantEstudio > 0) {
+    const importeTotal = cantEstudio * 200;
+    const cajaModel = require('./cajachica');
+    await cajaModel.create({
+      fecha: new Date(),
+      tipo: 'Entrada',
+      descripcion: `Cobro préstamo #${idCabezal} — ${cantEstudio} libro(s) de estudio`,
+      importe: importeTotal,
+      usuario: 'sistema',
+    });
   }
 
   return idCabezal;
@@ -178,4 +200,68 @@ const recalcularEstado = async function (pool, idPrestamo) {
     .query('UPDATE PrestamoCabezal SET Estado = @estado WHERE Id = @id');
 };
 
-module.exports = { getAll, getById, create, devolver };
+const generarPDF = async (req, res) => {
+  try {
+    const data = await model.getById(req.params.id);
+    if (!data) return res.status(404).send({ error: true, message: 'Préstamo no encontrado' });
+
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=prestamo_${data.Id}.pdf`);
+    doc.pipe(res);
+
+    // Encabezado
+    doc.fontSize(18).text('APMU — Comprobante de Préstamo', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).text('Asociación del Personal de Médica Uruguaya', { align: 'center' });
+    doc.moveDown(1.5);
+
+    // Datos del préstamo
+    doc.fontSize(12).text(`Préstamo Nº: ${data.Id}`);
+    doc.text(`Fecha: ${data.FechaPrestamo ? data.FechaPrestamo.toISOString().substring(0, 10).split('-').reverse().join('/') : ''}`);
+    doc.moveDown(0.5);
+
+    // Datos del afiliado
+    doc.text(`Afiliado: ${data.NombreAfiliado}`);
+    doc.text(`Documento: ${data.Documento}`);
+    doc.moveDown(1);
+
+    // Tabla de libros
+    doc.fontSize(12).text('Detalle de libros:', { underline: true });
+    doc.moveDown(0.5);
+
+    const tableTop = doc.y;
+    const col1 = 50, col2 = 300, col3 = 420;
+
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Libro', col1, tableTop);
+    doc.text('Tipo', col2, tableTop);
+    doc.text('Vencimiento', col3, tableTop);
+    doc.moveTo(col1, tableTop + 15).lineTo(545, tableTop + 15).stroke();
+
+    doc.font('Helvetica');
+    let y = tableTop + 22;
+    data.lineas.forEach(l => {
+      doc.text(l.NombreLibro, col1, y, { width: 240 });
+      doc.text(l.Tipo || '—', col2, y);
+      doc.text(l.FechaVencimiento ? l.FechaVencimiento.toISOString().substring(0, 10).split('-').reverse().join('/') : '—', col3, y);
+      y += 20;
+    });
+
+    doc.moveDown(3);
+    y = doc.y + 40;
+
+    // Firma
+    doc.moveTo(50, y).lineTo(250, y).stroke();
+    doc.fontSize(10).text('Firma del afiliado', 50, y + 5);
+
+    doc.moveTo(300, y).lineTo(500, y).stroke();
+    doc.text('Firma del responsable', 300, y + 5);
+
+    doc.end();
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { getAll, getById, create, devolver, generarPDF };
