@@ -74,4 +74,14 @@ const search = async function (req, res) {
   }
 };
 
-module.exports = { getAll, getOne, create, update, remove, search };
+const reactivar = async (req, res) => {
+  try {
+    const result = await model.reactivar(req.params.id);
+    if (!result) return res.status(404).send({ error: true, message: 'Afiliado no encontrado o ya activo' });
+    res.status(200).send({ error: false });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = { getAll, getOne, create, update, remove, search, reactivar };

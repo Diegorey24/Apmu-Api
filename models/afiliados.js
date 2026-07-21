@@ -188,7 +188,7 @@ const search = async function (texto) {
   const rs = await pool.request()
     .input('texto', `%${texto}%`)
     .query(`
-      SELECT TOP 10 Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido
+      SELECT TOP 10 Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido, NroFuncionario
       FROM Afiliados
       WHERE Activo = 1
         AND (
@@ -203,4 +203,19 @@ const search = async function (texto) {
   return rs.recordset;
 };
 
-module.exports = { getAll, getById, create, update, remove, search };
+const reactivar = async function (id) {
+  const pool = await db.getConnection();
+
+  // Eliminar registro de AfiliadosBajados
+  await pool.request()
+    .input('id', id)
+    .query('DELETE FROM AfiliadosBajados WHERE IdAfiliado = @id');
+
+  // Reactivar
+  const rs = await pool.request()
+    .input('id', id)
+    .query('UPDATE Afiliados SET Activo = 1, FechaBaja = NULL WHERE Id = @id AND Activo = 0');
+  return rs.rowsAffected[0];
+};
+
+module.exports = { getAll, getById, create, update, remove, search, reactivar };
