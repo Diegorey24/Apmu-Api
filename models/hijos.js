@@ -1,4 +1,17 @@
 const db = require('../helpers/db');
+const configuracionModel = require('./configuracion');
+
+const calcularEdadAlCorte = (fechaNacimiento, corteMD) => {
+    const [mes, dia] = corteMD.split('-').map(Number);
+    const anioActual = new Date().getFullYear();
+    const fechaCorte = new Date(anioActual, mes - 1, dia);
+    const nacimiento = new Date(fechaNacimiento);
+    let edad = fechaCorte.getFullYear() - nacimiento.getFullYear();
+    const huboCumple = (fechaCorte.getMonth() > nacimiento.getMonth()) ||
+        (fechaCorte.getMonth() === nacimiento.getMonth() && fechaCorte.getDate() >= nacimiento.getDate());
+    if (!huboCumple) edad--;
+    return edad;
+};
 
 const getByAfiliado = async function (idAfiliado) {
     const pool = await db.getConnection();
@@ -7,7 +20,11 @@ const getByAfiliado = async function (idAfiliado) {
         .query(`
       SELECT * FROM Hijos WHERE IdAfiliado = @idAfiliado ORDER BY PrimerApellido, PrimerNombre
     `);
-    return rs.recordset;
+    const fechaCorte = (await configuracionModel.getByClave('FechaCorteHijos')) || '04-30';
+    return rs.recordset.map(h => ({
+        ...h,
+        EdadAlCorte: h.FechaNacimiento ? calcularEdadAlCorte(h.FechaNacimiento, fechaCorte) : null,
+    }));
 };
 
 const create = async function (data) {
@@ -27,11 +44,13 @@ const create = async function (data) {
         .input('cedulaPadre', data.cedulaPadre || null)
         .input('cedulaMadre', data.cedulaMadre || null)
         .input('validado', 0)
+        .input('discapacidad', data.discapacidad ? 1 : 0)
+        .input('patologia', data.patologia || null)
         .query(`
       INSERT INTO Hijos (Id, IdAfiliado, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido,
-        Documento, FechaNacimiento, CedulaPadre, CedulaMadre, Validado, FechaAlta)
+        Documento, FechaNacimiento, CedulaPadre, CedulaMadre, Validado, Discapacidad, Patologia, FechaAlta)
       VALUES (@id, @idAfiliado, @primerNombre, @segundoNombre, @primerApellido, @segundoApellido,
-        @documento, @fechaNacimiento, @cedulaPadre, @cedulaMadre, @validado, GETDATE())
+        @documento, @fechaNacimiento, @cedulaPadre, @cedulaMadre, @validado, @discapacidad, @patologia, GETDATE())
     `);
     return nextId;
 };
@@ -48,12 +67,15 @@ const update = async function (id, data) {
         .input('fechaNacimiento', data.fechaNacimiento || null)
         .input('cedulaPadre', data.cedulaPadre || null)
         .input('cedulaMadre', data.cedulaMadre || null)
+        .input('discapacidad', data.discapacidad ? 1 : 0)
+        .input('patologia', data.patologia || null)
         .query(`
       UPDATE Hijos SET
         PrimerNombre = @primerNombre, SegundoNombre = @segundoNombre,
         PrimerApellido = @primerApellido, SegundoApellido = @segundoApellido,
         Documento = @documento, FechaNacimiento = @fechaNacimiento,
-        CedulaPadre = @cedulaPadre, CedulaMadre = @cedulaMadre
+        CedulaPadre = @cedulaPadre, CedulaMadre = @cedulaMadre,
+        Discapacidad = @discapacidad, Patologia = @patologia
       WHERE Id = @id
     `);
 };

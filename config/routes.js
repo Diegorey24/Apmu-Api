@@ -26,6 +26,7 @@ const importacionaportes = require('../routes/importacionaportes');
 const licenciasgremiales = require('../routes/licenciasgremiales');
 const beneficios = require('../routes/beneficios');
 const solicitudesprestamo = require('../routes/solicitudesprestamo');
+const configuracion = require('../routes/configuracion');
 
 /* End Routes includes */
 
@@ -53,6 +54,7 @@ router.use('/', importacionaportes);
 router.use('/', licenciasgremiales);
 router.use('/', beneficios);
 router.use('/', solicitudesprestamo);
+router.use('/', configuracion);
 
 
 // catch 404

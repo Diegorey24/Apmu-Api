@@ -1,12 +1,20 @@
 const db = require('../helpers/db');
 
-const getAll = async function () {
+const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
-  const rs = await pool.request().query(`
-    SELECT Id, Fecha, Tipo, Descripcion, Importe, Usuario,
-      SUM(CASE WHEN Tipo = 'Entrada' THEN Importe ELSE -Importe END)
-        OVER (ORDER BY Fecha, Id) AS SaldoAcumulado
-    FROM CajaChica
+  const request = pool.request();
+  let where = '';
+  if (filtros.fechaDesde) { where += ' AND Fecha >= @fechaDesde'; request.input('fechaDesde', filtros.fechaDesde); }
+  if (filtros.fechaHasta) { where += ' AND Fecha <= @fechaHasta'; request.input('fechaHasta', filtros.fechaHasta); }
+
+  const rs = await request.query(`
+    SELECT * FROM (
+      SELECT Id, Fecha, Tipo, Descripcion, Importe, Usuario,
+        SUM(CASE WHEN Tipo = 'Entrada' THEN Importe ELSE -Importe END)
+          OVER (ORDER BY Fecha, Id) AS SaldoAcumulado
+      FROM CajaChica
+    ) sub
+    WHERE 1=1 ${where}
     ORDER BY Fecha, Id
   `);
   return rs.recordset;

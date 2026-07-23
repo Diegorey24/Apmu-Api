@@ -72,9 +72,11 @@ const create = async function (data) {
     .input('material', data.material || null)
     .input('stock', data.stock || 0)
     .input('costo', data.tipo === 'Estudio' ? (data.costo || null) : null)
+    .input('autor', data.autor || null)
+    .input('grado', data.grado || null)
     .query(`
-    INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, Costo, FechaAlta)
-    VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, @costo, GETDATE())
+    INSERT INTO Libros (Id, ISBN, Nombre, Edicion, IdEditorial, IdMateria, Tipo, Material, Stock, Costo, Autor, Grado, FechaAlta)
+    VALUES (@id, @isbn, @nombre, @edicion, @idEditorial, @idMateria, @tipo, @material, @stock, @costo, @autor, @grado, GETDATE())
     `);
   return nextId;
 };
@@ -92,11 +94,14 @@ const update = async function (id, data) {
     .input('material', data.material || null)
     .input('stock', data.stock)
     .input('costo', data.tipo === 'Estudio' ? (data.costo || null) : null)
+    .input('autor', data.autor || null)
+    .input('grado', data.grado || null)
     .query(`
       UPDATE Libros SET
         ISBN = @isbn, Nombre = @nombre, Edicion = @edicion,
         IdEditorial = @idEditorial, IdMateria = @idMateria,
-        Tipo = @tipo, Material = @material, Stock = @stock, Costo = @costo
+        Tipo = @tipo, Material = @material, Stock = @stock, Costo = @costo,
+        Autor = @autor, Grado = @grado
       WHERE Id = @id
     `);
 };

@@ -1,4 +1,5 @@
 const model = require('../models/prestamos');
+const configuracionModel = require('../models/configuracion');
 const PDFDocument = require('pdfkit');
 
 const getAll = async (req, res) => {
@@ -99,6 +100,8 @@ const generarPDF = async (req, res) => {
     // Sección de cobro (libros de estudio)
     const librosEstudio = data.lineas.filter(l => l.Tipo === 'Estudio');
     if (librosEstudio.length > 0) {
+      const precioEstudio = parseFloat(await configuracionModel.getByClave('PrecioPrestamoEstudio')) || 200;
+      const totalCobro = librosEstudio.length * precioEstudio;
       y += 20;
       doc.moveTo(col1, y).lineTo(545, y).stroke();
       y += 10;
@@ -108,13 +111,13 @@ const generarPDF = async (req, res) => {
       y += 20;
 
       doc.font('Helvetica').fontSize(10);
-      doc.text(`${librosEstudio.length} libro(s) de estudio x $200`, col1, y);
-      doc.text(`$${librosEstudio.length * 200}`, col3, y);
+      doc.text(`${librosEstudio.length} libro(s) de estudio x $${precioEstudio}`, col1, y);
+      doc.text(`$${totalCobro}`, col3, y);
       y += 20;
 
       doc.font('Helvetica-Bold');
       doc.text('Total a cobrar:', col1, y);
-      doc.text(`$${librosEstudio.length * 200}`, col3, y);
+      doc.text(`$${totalCobro}`, col3, y);
       doc.font('Helvetica');
     }
 

@@ -1,5 +1,6 @@
 const db = require('../helpers/db');
 const PDFDocument = require('pdfkit');
+const configuracionModel = require('./configuracion');
 
 const getAll = async function (filtros = {}) {
   const pool = await db.getConnection();
@@ -27,16 +28,16 @@ const getAll = async function (filtros = {}) {
       SELECT 
         pc.Id, pc.FechaPrestamo, pc.Estado,
         a.Id AS IdAfiliado,
-        a.PrimerNombre + ' ' + a.PrimerApellido + 
+        a.PrimerNombre + ' ' + a.PrimerApellido +
           ISNULL(' ' + a.SegundoApellido, '') AS NombreAfiliado,
-        a.Documento,
+        a.Documento, a.NroFuncionario,
         COUNT(pl.Id) AS CantLibros,
         SUM(CASE WHEN pl.FechaDevolucion IS NOT NULL THEN 1 ELSE 0 END) AS CantDevueltos
       FROM PrestamoCabezal pc
       INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
       LEFT JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
       WHERE 1=1 ${where}
-      GROUP BY pc.Id, pc.FechaPrestamo, pc.Estado, a.Id, a.PrimerNombre, a.PrimerApellido, a.SegundoApellido, a.Documento
+      GROUP BY pc.Id, pc.FechaPrestamo, pc.Estado, a.Id, a.PrimerNombre, a.PrimerApellido, a.SegundoApellido, a.Documento, a.NroFuncionario
     ) sub
     ORDER BY FechaPrestamo DESC
     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
@@ -139,7 +140,8 @@ const create = async function (idAfiliado, lineas) {
     `);
   const cantEstudio = librosEstudio.recordset[0].cant;
   if (cantEstudio > 0) {
-    const importeTotal = cantEstudio * 200;
+    const precioEstudio = parseFloat(await configuracionModel.getByClave('PrecioPrestamoEstudio')) || 200;
+    const importeTotal = cantEstudio * precioEstudio;
     const cajaModel = require('./cajachica');
     await cajaModel.create({
       fecha: new Date(),

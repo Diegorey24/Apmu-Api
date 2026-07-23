@@ -9,5 +9,7 @@ router.get('/reportes/exportar/bajas', controller.exportarBajas);
 router.get('/reportes/exportar/aportes', controller.exportarAportes);
 router.get('/reportes/exportar/prestamos', controller.exportarPrestamos);
 router.get('/reportes/exportar/licencias', controller.exportarLicencias);
+router.get('/reportes/exportar/deudores-libros', controller.exportarDeudoresLibros);
+router.get('/reportes/exportar/libros', controller.exportarListadoLibros);
 
 module.exports = router;

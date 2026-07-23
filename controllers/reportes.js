@@ -283,4 +283,81 @@ const exportarLicencias = async (req, res) => {
   }
 };
 
-module.exports = { getDeudaAfiliado, getConciliacion, exportarAfiliados, exportarBajas, exportarAportes, exportarPrestamos, exportarLicencias };
+const exportarDeudoresLibros = async (req, res) => {
+  try {
+    const { fechaDesde, fechaHasta } = req.query;
+    const pool = await db.getConnection();
+    const request = pool.request();
+    let where = '';
+    if (fechaDesde) { where += ' AND pl.FechaVencimiento >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
+    if (fechaHasta) { where += ' AND pl.FechaVencimiento <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+
+    const rs = await request.query(`
+      SELECT
+        pc.Id AS NroPrestamo,
+        a.Documento, a.NroFuncionario,
+        a.PrimerNombre + ' ' + a.PrimerApellido AS Afiliado,
+        a.Telefono,
+        l.Nombre AS Libro,
+        pl.FechaPrestamo, pl.FechaVencimiento,
+        DATEDIFF(day, pl.FechaVencimiento, GETDATE()) AS DiasAtraso
+      FROM PrestamoLinea pl
+      INNER JOIN PrestamoCabezal pc ON pl.IdPrestamo = pc.Id
+      INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
+      INNER JOIN Libros l ON pl.IdLibro = l.Id
+      WHERE pl.FechaDevolucion IS NULL AND pl.FechaVencimiento < GETDATE() ${where}
+      ORDER BY pl.FechaVencimiento ASC
+    `);
+
+    const ws = XLSX.utils.json_to_sheet(rs.recordset);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Deudores');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename=deudores_libros.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+const exportarListadoLibros = async (req, res) => {
+  try {
+    const { fechaDesde, fechaHasta } = req.query;
+    const pool = await db.getConnection();
+    const request = pool.request();
+    let where = '';
+    if (fechaDesde) { where += ' AND l.FechaAlta >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
+    if (fechaHasta) { where += ' AND l.FechaAlta <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+
+    const rs = await request.query(`
+      SELECT
+        l.Nombre, l.Autor, l.ISBN, l.Edicion, l.Tipo,
+        e.Nombre AS Editorial, m.Nombre AS Materia, l.Grado, l.Material,
+        l.Stock, l.Costo, l.FechaAlta,
+        CASE WHEN l.FechaBaja IS NULL THEN 'Activo' ELSE 'Baja' END AS Estado
+      FROM Libros l
+      LEFT JOIN Editoriales e ON l.IdEditorial = e.Id
+      LEFT JOIN Materias m ON l.IdMateria = m.Id
+      WHERE 1=1 ${where}
+      ORDER BY l.Nombre
+    `);
+
+    const ws = XLSX.utils.json_to_sheet(rs.recordset);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Libros');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename=listado_libros.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+module.exports = {
+  getDeudaAfiliado, getConciliacion, exportarAfiliados, exportarBajas, exportarAportes,
+  exportarPrestamos, exportarLicencias, exportarDeudoresLibros, exportarListadoLibros,
+};

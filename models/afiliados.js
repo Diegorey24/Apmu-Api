@@ -188,7 +188,7 @@ const search = async function (texto) {
   const rs = await pool.request()
     .input('texto', `%${texto}%`)
     .query(`
-      SELECT TOP 10 Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido, NroFuncionario
+      SELECT TOP 10 Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido, NroFuncionario, Cargo, Sector
       FROM Afiliados
       WHERE Activo = 1
         AND (

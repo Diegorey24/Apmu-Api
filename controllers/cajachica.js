@@ -2,7 +2,8 @@ const model = require('../models/cajachica');
 
 const getAll = async (req, res) => {
   try {
-    const data = await model.getAll();
+    const { fechaDesde, fechaHasta } = req.query;
+    const data = await model.getAll({ fechaDesde, fechaHasta });
     const resumen = await model.getResumen();
     res.status(200).send({ error: false, data, resumen });
   } catch (err) {
