@@ -47,4 +47,24 @@ const remove = async (req, res) => {
     }
 };
 
-module.exports = { getAll, create, remove };
+const getListadoCanastas = async (req, res) => {
+    try {
+        const { anio } = req.query;
+        const data = await model.getListadoCanastas({ anio });
+        res.status(200).send({ error: false, data });
+    } catch (err) {
+        res.status(500).send({ error: true, message: err.message });
+    }
+};
+
+const getListadoUtiles = async (req, res) => {
+    try {
+        const { anio } = req.query;
+        const data = await model.getListadoUtiles({ anio });
+        res.status(200).send({ error: false, data });
+    } catch (err) {
+        res.status(500).send({ error: true, message: err.message });
+    }
+};
+
+module.exports = { getAll, create, remove, getListadoCanastas, getListadoUtiles };

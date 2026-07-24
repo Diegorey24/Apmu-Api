@@ -1,4 +1,6 @@
 const db = require('../helpers/db');
+const configuracionModel = require('./configuracion');
+const { calcularEdadAlCorte } = require('./hijos');
 
 const getAll = async function (filtros = {}) {
     const pool = await db.getConnection();
@@ -92,4 +94,58 @@ const remove = async function (id) {
         .query('DELETE FROM Beneficios WHERE Id = @id');
 };
 
-module.exports = { getAll, verificarDuplicado, verificarPrestamosVencidos, create, remove };
+const getListadoCanastas = async function (filtros = {}) {
+    const pool = await db.getConnection();
+    const request = pool.request();
+    let where = '';
+    if (filtros.anio) { where += ' AND b.Anio = @anio'; request.input('anio', filtros.anio); }
+
+    const rs = await request.query(`
+      SELECT
+        a.NroFuncionario, a.Documento,
+        a.PrimerNombre + ' ' + a.PrimerApellido + ISNULL(' ' + a.SegundoApellido, '') AS NombreCompleto,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM PrestamoCabezal pc WHERE pc.IdAfiliado = a.Id AND pc.Estado = 'Vencido'
+        ) THEN 1 ELSE 0 END AS DeudaLibros,
+        u.Nombre AS Ubicacion,
+        b.Anio, b.FechaEntrega
+      FROM Beneficios b
+      INNER JOIN Afiliados a ON b.IdAfiliado = a.Id
+      LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
+      WHERE b.Tipo = 'Canasta' ${where}
+      ORDER BY a.PrimerApellido, a.PrimerNombre
+    `);
+    return rs.recordset;
+};
+
+const getListadoUtiles = async function (filtros = {}) {
+    const pool = await db.getConnection();
+    const request = pool.request();
+    let where = '';
+    if (filtros.anio) { where += ' AND b.Anio = @anio'; request.input('anio', filtros.anio); }
+
+    const rs = await request.query(`
+      SELECT
+        a.NroFuncionario,
+        a.PrimerNombre + ' ' + a.PrimerApellido + ISNULL(' ' + a.SegundoApellido, '') AS NombreSocio,
+        a.Documento,
+        h.PrimerNombre + ' ' + h.PrimerApellido AS NombreHijo,
+        h.FechaNacimiento, h.Sexo,
+        u.Nombre AS Ubicacion,
+        b.Anio, b.FechaEntrega
+      FROM Beneficios b
+      INNER JOIN Afiliados a ON b.IdAfiliado = a.Id
+      INNER JOIN Hijos h ON b.IdHijo = h.Id
+      LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
+      WHERE b.Tipo = 'Utiles' ${where}
+      ORDER BY a.PrimerApellido, a.PrimerNombre
+    `);
+
+    const fechaCorte = (await configuracionModel.getByClave('FechaCorteHijos')) || '04-30';
+    return rs.recordset.map(r => ({
+        ...r,
+        Edad: r.FechaNacimiento ? calcularEdadAlCorte(r.FechaNacimiento, fechaCorte) : null,
+    }));
+};
+
+module.exports = { getAll, verificarDuplicado, verificarPrestamosVencidos, create, remove, getListadoCanastas, getListadoUtiles };

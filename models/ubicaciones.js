@@ -3,7 +3,11 @@ const db = require('../helpers/db');
 const getAll = async function () {
     const pool = await db.getConnection();
     const rs = await pool.request()
-        .query('SELECT * FROM Ubicaciones ORDER BY Nombre');
+        .query(`
+          SELECT Id, Codigo, Tipo, Nombre, Direccion, Correo, Telefono, CuentaBancaria, Banco, EmpresaEnvio
+          FROM Ubicaciones
+          ORDER BY Nombre
+        `);
     return rs.recordset;
 };
 

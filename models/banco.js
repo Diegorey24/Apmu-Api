@@ -10,19 +10,19 @@ const getAll = async function (filtros = {}) {
   const rs = await request.query(`
     SELECT * FROM (
       SELECT
-        c.Id, c.Fecha, c.Tipo, c.Descripcion, c.Importe, c.Usuario,
-        c.Comprobante, c.CodigoCuenta, c.IdCentroCosto, c.Debe, c.Haber, c.NroComp,
+        b.Id, b.Fecha, b.Tipo, b.Descripcion, b.Importe, b.Usuario,
+        b.Comprobante, b.CodigoCuenta, b.IdCentroCosto, b.Debe, b.Haber, b.NroComp,
         pc.Descripcion AS CuentaDescripcion,
         cco.Nombre AS CentroCostoNombre,
         SUM(
-          CASE WHEN c.Debe IS NULL AND c.Haber IS NULL
-            THEN CASE WHEN c.Tipo = 'Entrada' THEN ISNULL(c.Importe, 0) ELSE -ISNULL(c.Importe, 0) END
-            ELSE ISNULL(c.Debe, 0) - ISNULL(c.Haber, 0)
+          CASE WHEN b.Debe IS NULL AND b.Haber IS NULL
+            THEN CASE WHEN b.Tipo = 'Entrada' THEN ISNULL(b.Importe, 0) ELSE -ISNULL(b.Importe, 0) END
+            ELSE ISNULL(b.Debe, 0) - ISNULL(b.Haber, 0)
           END
-        ) OVER (ORDER BY c.Fecha, c.Id) AS SaldoAcumulado
-      FROM CajaChica c
-      LEFT JOIN PlanCuentas pc ON c.CodigoCuenta = pc.Codigo
-      LEFT JOIN CentrosCosto cco ON c.IdCentroCosto = cco.Id
+        ) OVER (ORDER BY b.Fecha, b.Id) AS SaldoAcumulado
+      FROM Banco b
+      LEFT JOIN PlanCuentas pc ON b.CodigoCuenta = pc.Codigo
+      LEFT JOIN CentrosCosto cco ON b.IdCentroCosto = cco.Id
     ) sub
     WHERE 1=1 ${where}
     ORDER BY Fecha, Id
@@ -37,7 +37,7 @@ const getResumen = async function () {
       ISNULL(SUM(ISNULL(Debe, 0)), 0) AS TotalEntradas,
       ISNULL(SUM(ISNULL(Haber, 0)), 0) AS TotalSalidas,
       ISNULL(SUM(ISNULL(Debe, 0) - ISNULL(Haber, 0)), 0) AS Saldo
-    FROM CajaChica
+    FROM Banco
   `);
   return rs.recordset[0];
 };
@@ -46,7 +46,7 @@ const calcularNroComp = async function (pool, fecha) {
   const rs = await pool.request()
     .input('fecha', fecha)
     .query(`
-      SELECT ISNULL(MAX(NroComp), 0) + 1 AS next FROM CajaChica
+      SELECT ISNULL(MAX(NroComp), 0) + 1 AS next FROM Banco
       WHERE MONTH(Fecha) = MONTH(@fecha) AND YEAR(Fecha) = YEAR(@fecha)
     `);
   return rs.recordset[0].next;
@@ -55,7 +55,7 @@ const calcularNroComp = async function (pool, fecha) {
 const create = async function (data) {
   const pool = await db.getConnection();
   const maxIdRes = await pool.request()
-    .query('SELECT ISNULL(MAX(Id), 0) + 1 AS nextId FROM CajaChica');
+    .query('SELECT ISNULL(MAX(Id), 0) + 1 AS nextId FROM Banco');
   const nextId = maxIdRes.recordset[0].nextId;
 
   const debe = parseFloat(data.debe) > 0 ? parseFloat(data.debe) : null;
@@ -79,7 +79,7 @@ const create = async function (data) {
     .input('haber', haber)
     .input('nroComp', nroComp)
     .query(`
-      INSERT INTO CajaChica (Id, Fecha, Tipo, Descripcion, Importe, Usuario, Comprobante, CodigoCuenta, IdCentroCosto, Debe, Haber, NroComp)
+      INSERT INTO Banco (Id, Fecha, Tipo, Descripcion, Importe, Usuario, Comprobante, CodigoCuenta, IdCentroCosto, Debe, Haber, NroComp)
       VALUES (@id, @fecha, @tipo, @descripcion, @importe, @usuario, @comprobante, @codigoCuenta, @idCentroCosto, @debe, @haber, @nroComp)
     `);
   return nextId;
@@ -117,7 +117,7 @@ const update = async function (id, data) {
     .input('haber', haber)
     .input('nroComp', nroComp)
     .query(`
-      UPDATE CajaChica SET
+      UPDATE Banco SET
         Fecha = @fecha, Tipo = @tipo, Descripcion = @descripcion,
         Importe = @importe, Usuario = @usuario,
         Comprobante = @comprobante, CodigoCuenta = @codigoCuenta, IdCentroCosto = @idCentroCosto,
@@ -130,7 +130,7 @@ const remove = async function (id) {
   const pool = await db.getConnection();
   await pool.request()
     .input('id', id)
-    .query('DELETE FROM CajaChica WHERE Id = @id');
+    .query('DELETE FROM Banco WHERE Id = @id');
 };
 
 const getSaldoTotal = async function () {
@@ -142,7 +142,7 @@ const getSaldoTotal = async function () {
         ELSE ISNULL(Debe, 0) - ISNULL(Haber, 0)
       END
     ), 0) AS Saldo
-    FROM CajaChica
+    FROM Banco
   `);
   return rs.recordset[0].Saldo;
 };
@@ -151,7 +151,7 @@ const getById = async function (id) {
   const pool = await db.getConnection();
   const rs = await pool.request()
     .input('id', id)
-    .query('SELECT * FROM CajaChica WHERE Id = @id');
+    .query('SELECT * FROM Banco WHERE Id = @id');
   return rs.recordset[0];
 };
 

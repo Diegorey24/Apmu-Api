@@ -13,12 +13,19 @@ const validarCI = (ci) => {
     return check === digits[7];
 };
 
-const existeAfiliado = async (documento) => {
+const buscarAfiliadoPorDocumento = async (documento) => {
     const pool = await db.getConnection();
     const rs = await pool.request()
         .input('doc', documento)
-        .query('SELECT COUNT(*) AS total FROM Afiliados WHERE Documento = @doc AND Activo = 1');
-    return rs.recordset[0].total > 0;
+        .query('SELECT TOP 1 Id FROM Afiliados WHERE Documento = @doc AND Activo = 1');
+    return rs.recordset[0]?.Id || null;
+};
+
+const calcularIdAfiliadoSecundario = (idAfiliado, idAfiliadoPadre, idAfiliadoMadre) => {
+    const idAfiliadoNum = parseInt(idAfiliado);
+    if (idAfiliadoPadre && idAfiliadoPadre !== idAfiliadoNum) return idAfiliadoPadre;
+    if (idAfiliadoMadre && idAfiliadoMadre !== idAfiliadoNum) return idAfiliadoMadre;
+    return null;
 };
 
 const getByAfiliado = async (req, res) => {
@@ -41,15 +48,22 @@ const create = async (req, res) => {
         if (documento && !validarCI(documento)) {
             return res.status(400).send({ error: true, message: 'La cédula del hijo no es válida' });
         }
+
+        let idAfiliadoPadre = null;
+        let idAfiliadoMadre = null;
+
         if (cedulaPadre) {
-            if (!validarCI(cedulaPadre)) return res.status(400).send({ error: true, message: 'La cédula del padre no es válida' });
-            if (!(await existeAfiliado(cedulaPadre))) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
+            idAfiliadoPadre = await buscarAfiliadoPorDocumento(cedulaPadre);
+            if (!idAfiliadoPadre) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
         }
         if (cedulaMadre) {
-            if (!validarCI(cedulaMadre)) return res.status(400).send({ error: true, message: 'La cédula de la madre no es válida' });
-            if (!(await existeAfiliado(cedulaMadre))) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
+            idAfiliadoMadre = await buscarAfiliadoPorDocumento(cedulaMadre);
+            if (!idAfiliadoMadre) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
         }
-        const id = await model.create(req.body);
+
+        const idAfiliadoSecundario = calcularIdAfiliadoSecundario(idAfiliado, idAfiliadoPadre, idAfiliadoMadre);
+
+        const id = await model.create({ ...req.body, idAfiliadoSecundario });
         res.status(201).send({ error: false, data: { id } });
     } catch (err) {
         res.status(500).send({ error: true, message: err.message });
@@ -66,15 +80,25 @@ const update = async (req, res) => {
         if (documento && !validarCI(documento)) {
             return res.status(400).send({ error: true, message: 'La cédula del hijo no es válida' });
         }
+
+        const registroActual = await model.getById(req.params.id);
+        if (!registroActual) return res.status(404).send({ error: true, message: 'Hijo no encontrado' });
+
+        let idAfiliadoPadre = null;
+        let idAfiliadoMadre = null;
+
         if (cedulaPadre) {
-            if (!validarCI(cedulaPadre)) return res.status(400).send({ error: true, message: 'La cédula del padre no es válida' });
-            if (!(await existeAfiliado(cedulaPadre))) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
+            idAfiliadoPadre = await buscarAfiliadoPorDocumento(cedulaPadre);
+            if (!idAfiliadoPadre) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
         }
         if (cedulaMadre) {
-            if (!validarCI(cedulaMadre)) return res.status(400).send({ error: true, message: 'La cédula de la madre no es válida' });
-            if (!(await existeAfiliado(cedulaMadre))) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
+            idAfiliadoMadre = await buscarAfiliadoPorDocumento(cedulaMadre);
+            if (!idAfiliadoMadre) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
         }
-        await model.update(req.params.id, req.body);
+
+        const idAfiliadoSecundario = calcularIdAfiliadoSecundario(registroActual.IdAfiliado, idAfiliadoPadre, idAfiliadoMadre);
+
+        await model.update(req.params.id, { ...req.body, idAfiliadoSecundario });
         res.status(200).send({ error: false });
     } catch (err) {
         res.status(500).send({ error: true, message: err.message });

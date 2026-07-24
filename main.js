@@ -31,6 +31,7 @@ app.use(
       { url: '/libros', method: 'GET' },
       { url: '/portal/mis-solicitudes', method: 'GET' },
       { url: '^/prestamos/\\d+/pdf', method: 'GET' },
+      { url: '^/prestamos-articulos/\\d+/pdf', method: 'GET' },
     ],
   })
 );

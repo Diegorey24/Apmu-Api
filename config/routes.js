@@ -27,6 +27,11 @@ const licenciasgremiales = require('../routes/licenciasgremiales');
 const beneficios = require('../routes/beneficios');
 const solicitudesprestamo = require('../routes/solicitudesprestamo');
 const configuracion = require('../routes/configuracion');
+const plancuentas = require('../routes/plancuentas');
+const centroscosto = require('../routes/centroscosto');
+const banco = require('../routes/banco');
+const prestamosArticulos = require('../routes/prestamos-articulos');
+const tarjetasMacro = require('../routes/tarjetas-macro');
 
 /* End Routes includes */
 
@@ -55,6 +60,11 @@ router.use('/', licenciasgremiales);
 router.use('/', beneficios);
 router.use('/', solicitudesprestamo);
 router.use('/', configuracion);
+router.use('/', plancuentas);
+router.use('/', centroscosto);
+router.use('/', banco);
+router.use('/', prestamosArticulos);
+router.use('/', tarjetasMacro);
 
 
 // catch 404

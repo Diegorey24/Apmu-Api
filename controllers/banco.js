@@ -1,4 +1,4 @@
-const model = require('../models/cajachica');
+const model = require('../models/banco');
 
 const getAll = async (req, res) => {
   try {
@@ -37,7 +37,7 @@ const create = async (req, res) => {
     if (haber > 0) {
       const saldoActual = await model.getSaldoTotal();
       if (haber > saldoActual) {
-        return res.status(400).send({ error: true, message: 'No hay saldo suficiente en caja' });
+        return res.status(400).send({ error: true, message: 'No hay saldo suficiente en banco' });
       }
     }
 
@@ -65,7 +65,7 @@ const update = async (req, res) => {
     const saldoNuevo = (saldoActual - efectoActual) + efectoNuevo;
 
     if (saldoNuevo < 0) {
-      return res.status(400).send({ error: true, message: 'No hay saldo suficiente en caja para esta edición' });
+      return res.status(400).send({ error: true, message: 'No hay saldo suficiente en banco para esta edición' });
     }
 
     await model.update(req.params.id, req.body);

@@ -18,13 +18,25 @@ const getByAfiliado = async function (idAfiliado) {
     const rs = await pool.request()
         .input('idAfiliado', idAfiliado)
         .query(`
-      SELECT * FROM Hijos WHERE IdAfiliado = @idAfiliado ORDER BY PrimerApellido, PrimerNombre
+      SELECT * FROM Hijos
+      WHERE IdAfiliado = @idAfiliado OR IdAfiliadoSecundario = @idAfiliado
+      ORDER BY PrimerApellido, PrimerNombre
     `);
     const fechaCorte = (await configuracionModel.getByClave('FechaCorteHijos')) || '04-30';
+    const idAfiliadoNum = parseInt(idAfiliado);
     return rs.recordset.map(h => ({
         ...h,
         EdadAlCorte: h.FechaNacimiento ? calcularEdadAlCorte(h.FechaNacimiento, fechaCorte) : null,
+        VinculadoA: h.IdAfiliado === idAfiliadoNum ? 'principal' : 'secundario',
     }));
+};
+
+const getById = async function (id) {
+    const pool = await db.getConnection();
+    const rs = await pool.request()
+        .input('id', id)
+        .query('SELECT * FROM Hijos WHERE Id = @id');
+    return rs.recordset[0];
 };
 
 const create = async function (data) {
@@ -46,11 +58,13 @@ const create = async function (data) {
         .input('validado', 0)
         .input('discapacidad', data.discapacidad ? 1 : 0)
         .input('patologia', data.patologia || null)
+        .input('sexo', data.sexo || null)
+        .input('idAfiliadoSecundario', data.idAfiliadoSecundario || null)
         .query(`
       INSERT INTO Hijos (Id, IdAfiliado, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido,
-        Documento, FechaNacimiento, CedulaPadre, CedulaMadre, Validado, Discapacidad, Patologia, FechaAlta)
+        Documento, FechaNacimiento, CedulaPadre, CedulaMadre, Validado, Discapacidad, Patologia, Sexo, IdAfiliadoSecundario, FechaAlta)
       VALUES (@id, @idAfiliado, @primerNombre, @segundoNombre, @primerApellido, @segundoApellido,
-        @documento, @fechaNacimiento, @cedulaPadre, @cedulaMadre, @validado, @discapacidad, @patologia, GETDATE())
+        @documento, @fechaNacimiento, @cedulaPadre, @cedulaMadre, @validado, @discapacidad, @patologia, @sexo, @idAfiliadoSecundario, GETDATE())
     `);
     return nextId;
 };
@@ -69,13 +83,16 @@ const update = async function (id, data) {
         .input('cedulaMadre', data.cedulaMadre || null)
         .input('discapacidad', data.discapacidad ? 1 : 0)
         .input('patologia', data.patologia || null)
+        .input('sexo', data.sexo || null)
+        .input('idAfiliadoSecundario', data.idAfiliadoSecundario || null)
         .query(`
       UPDATE Hijos SET
         PrimerNombre = @primerNombre, SegundoNombre = @segundoNombre,
         PrimerApellido = @primerApellido, SegundoApellido = @segundoApellido,
         Documento = @documento, FechaNacimiento = @fechaNacimiento,
         CedulaPadre = @cedulaPadre, CedulaMadre = @cedulaMadre,
-        Discapacidad = @discapacidad, Patologia = @patologia
+        Discapacidad = @discapacidad, Patologia = @patologia, Sexo = @sexo,
+        IdAfiliadoSecundario = @idAfiliadoSecundario
       WHERE Id = @id
     `);
 };
@@ -95,4 +112,4 @@ const remove = async function (id) {
         .query('DELETE FROM Hijos WHERE Id = @id');
 };
 
-module.exports = { getByAfiliado, create, update, validar, remove };
+module.exports = { getByAfiliado, getById, create, update, validar, remove, calcularEdadAlCorte };
