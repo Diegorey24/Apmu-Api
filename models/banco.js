@@ -47,7 +47,7 @@ const calcularNroComp = async function (pool, fecha) {
     .input('fecha', fecha)
     .query(`
       SELECT ISNULL(MAX(NroComp), 0) + 1 AS next FROM Banco
-      WHERE MONTH(Fecha) = MONTH(@fecha) AND YEAR(Fecha) = YEAR(@fecha)
+      WHERE Mes = MONTH(@fecha) AND YEAR(Fecha) = YEAR(@fecha)
     `);
   return rs.recordset[0].next;
 };
@@ -79,8 +79,8 @@ const create = async function (data) {
     .input('haber', haber)
     .input('nroComp', nroComp)
     .query(`
-      INSERT INTO Banco (Id, Fecha, Tipo, Descripcion, Importe, Usuario, Comprobante, CodigoCuenta, IdCentroCosto, Debe, Haber, NroComp)
-      VALUES (@id, @fecha, @tipo, @descripcion, @importe, @usuario, @comprobante, @codigoCuenta, @idCentroCosto, @debe, @haber, @nroComp)
+      INSERT INTO Banco (Id, Fecha, Tipo, Descripcion, Importe, Usuario, Comprobante, CodigoCuenta, IdCentroCosto, Debe, Haber, NroComp, Mes)
+      VALUES (@id, @fecha, @tipo, @descripcion, @importe, @usuario, @comprobante, @codigoCuenta, @idCentroCosto, @debe, @haber, @nroComp, MONTH(@fecha))
     `);
   return nextId;
 };
@@ -121,7 +121,7 @@ const update = async function (id, data) {
         Fecha = @fecha, Tipo = @tipo, Descripcion = @descripcion,
         Importe = @importe, Usuario = @usuario,
         Comprobante = @comprobante, CodigoCuenta = @codigoCuenta, IdCentroCosto = @idCentroCosto,
-        Debe = @debe, Haber = @haber, NroComp = @nroComp
+        Debe = @debe, Haber = @haber, NroComp = @nroComp, Mes = MONTH(@fecha)
       WHERE Id = @id
     `);
 };

@@ -7,8 +7,6 @@ const _allowUrl = function (url, method) {
     if (profileUrl === 'public') return true;
   }
 
-  console.log('[_allowUrl] DEBUG url=' + JSON.stringify(url) + ' method=' + method);
-
   for (let i = 0; i < _allowUrls.length; i++) {
     if (url.match(_allowUrls[i].url) && method.toUpperCase() === _allowUrls[i].method.toUpperCase())
       return true;
