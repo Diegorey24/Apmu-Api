@@ -32,6 +32,7 @@ const centroscosto = require('../routes/centroscosto');
 const banco = require('../routes/banco');
 const prestamosArticulos = require('../routes/prestamos-articulos');
 const tarjetasMacro = require('../routes/tarjetas-macro');
+const arqueo = require('../routes/arqueo');
 
 /* End Routes includes */
 
@@ -65,6 +66,7 @@ router.use('/', centroscosto);
 router.use('/', banco);
 router.use('/', prestamosArticulos);
 router.use('/', tarjetasMacro);
+router.use('/', arqueo);
 
 
 // catch 404
