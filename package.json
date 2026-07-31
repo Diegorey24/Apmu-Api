@@ -16,6 +16,7 @@
       "plugins/**/*",
       "models/**/*",
       "config/**/*",
+      "assets/**/*",
       "node_modules/pdfkit/js/data/**/*"
     ],
     "scripts": []

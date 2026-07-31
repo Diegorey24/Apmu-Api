@@ -1,6 +1,10 @@
 const model = require('../models/prestamos');
 const configuracionModel = require('../models/configuracion');
 const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+
+const LOGO_PATH = path.join(__dirname, '../assets/apmu-logo.jpg');
 
 const getAll = async (req, res) => {
   try {
@@ -57,6 +61,10 @@ const generarPDF = async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename=prestamo_${data.Id}.pdf`);
     doc.pipe(res);
+
+    if (fs.existsSync(LOGO_PATH)) {
+      doc.image(LOGO_PATH, doc.page.width - 50 - 80, 40, { width: 80 });
+    }
 
     // Encabezado
     doc.fontSize(18).text('APMU — Comprobante de Préstamo', { align: 'center' });
