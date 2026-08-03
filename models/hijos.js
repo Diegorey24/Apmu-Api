@@ -97,6 +97,26 @@ const update = async function (id, data) {
     `);
 };
 
+const findByDocumento = async function (documento, excludeId) {
+    const pool = await db.getConnection();
+    const request = pool.request().input('documento', documento);
+    let query = 'SELECT TOP 1 * FROM Hijos WHERE Documento = @documento';
+    if (excludeId) {
+        request.input('excludeId', excludeId);
+        query += ' AND Id <> @excludeId';
+    }
+    const rs = await request.query(query);
+    return rs.recordset[0];
+};
+
+const cambiarTitular = async function (id, idAfiliado) {
+    const pool = await db.getConnection();
+    await pool.request()
+        .input('id', id)
+        .input('idAfiliado', idAfiliado)
+        .query('UPDATE Hijos SET IdAfiliado = @idAfiliado, IdAfiliadoSecundario = NULL WHERE Id = @id');
+};
+
 const validar = async function (id, validado) {
     const pool = await db.getConnection();
     await pool.request()
@@ -112,4 +132,4 @@ const remove = async function (id) {
         .query('DELETE FROM Hijos WHERE Id = @id');
 };
 
-module.exports = { getByAfiliado, getById, create, update, validar, remove, calcularEdadAlCorte };
+module.exports = { getByAfiliado, getById, create, update, validar, remove, calcularEdadAlCorte, findByDocumento, cambiarTitular };

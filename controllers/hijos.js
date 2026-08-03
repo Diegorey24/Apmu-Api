@@ -13,19 +13,12 @@ const validarCI = (ci) => {
     return check === digits[7];
 };
 
-const buscarAfiliadoPorDocumento = async (documento) => {
+const verificarAfiliadoActivo = async (id) => {
     const pool = await db.getConnection();
     const rs = await pool.request()
-        .input('doc', documento)
-        .query('SELECT TOP 1 Id FROM Afiliados WHERE Documento = @doc AND Activo = 1');
-    return rs.recordset[0]?.Id || null;
-};
-
-const calcularIdAfiliadoSecundario = (idAfiliado, idAfiliadoPadre, idAfiliadoMadre) => {
-    const idAfiliadoNum = parseInt(idAfiliado);
-    if (idAfiliadoPadre && idAfiliadoPadre !== idAfiliadoNum) return idAfiliadoPadre;
-    if (idAfiliadoMadre && idAfiliadoMadre !== idAfiliadoNum) return idAfiliadoMadre;
-    return null;
+        .input('id', id)
+        .query('SELECT TOP 1 Id FROM Afiliados WHERE Id = @id AND Activo = 1');
+    return !!rs.recordset[0];
 };
 
 const getByAfiliado = async (req, res) => {
@@ -39,31 +32,27 @@ const getByAfiliado = async (req, res) => {
 
 const create = async (req, res) => {
     try {
-        const { primerNombre, primerApellido, idAfiliado } = req.body;
+        const { primerNombre, primerApellido, idAfiliado, documento, fechaNacimiento } = req.body;
         if (!primerNombre?.trim()) return res.status(400).send({ error: true, message: 'El primer nombre es obligatorio' });
         if (!primerApellido?.trim()) return res.status(400).send({ error: true, message: 'El primer apellido es obligatorio' });
         if (!idAfiliado) return res.status(400).send({ error: true, message: 'El afiliado es obligatorio' });
-        const { documento, cedulaPadre, cedulaMadre } = req.body;
+        if (!documento?.trim()) return res.status(400).send({ error: true, message: 'La cédula (CI) del hijo es obligatoria' });
+        if (!fechaNacimiento) return res.status(400).send({ error: true, message: 'La fecha de nacimiento es obligatoria' });
 
-        if (documento && !validarCI(documento)) {
+        if (!validarCI(documento)) {
             return res.status(400).send({ error: true, message: 'La cédula del hijo no es válida' });
         }
 
-        let idAfiliadoPadre = null;
-        let idAfiliadoMadre = null;
-
-        if (cedulaPadre) {
-            idAfiliadoPadre = await buscarAfiliadoPorDocumento(cedulaPadre);
-            if (!idAfiliadoPadre) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
-        }
-        if (cedulaMadre) {
-            idAfiliadoMadre = await buscarAfiliadoPorDocumento(cedulaMadre);
-            if (!idAfiliadoMadre) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
+        const existente = await model.findByDocumento(documento);
+        if (existente) {
+            const idAfiliadoNum = parseInt(idAfiliado);
+            const yaAsociados = [existente.IdAfiliado, existente.IdAfiliadoSecundario].filter(Boolean);
+            if (!yaAsociados.includes(idAfiliadoNum)) {
+                return res.status(400).send({ error: true, message: 'Este hijo ya está asociado a otro afiliado. Utilice "Cambiar titular" para reasignarlo.' });
+            }
         }
 
-        const idAfiliadoSecundario = calcularIdAfiliadoSecundario(idAfiliado, idAfiliadoPadre, idAfiliadoMadre);
-
-        const id = await model.create({ ...req.body, idAfiliadoSecundario });
+        const id = await model.create({ ...req.body, idAfiliadoSecundario: null });
         res.status(201).send({ error: false, data: { id } });
     } catch (err) {
         res.status(500).send({ error: true, message: err.message });
@@ -72,33 +61,28 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
     try {
-        const { primerNombre, primerApellido } = req.body;
+        const { primerNombre, primerApellido, documento, fechaNacimiento } = req.body;
         if (!primerNombre?.trim()) return res.status(400).send({ error: true, message: 'El primer nombre es obligatorio' });
         if (!primerApellido?.trim()) return res.status(400).send({ error: true, message: 'El primer apellido es obligatorio' });
-        const { documento, cedulaPadre, cedulaMadre } = req.body;
+        if (!documento?.trim()) return res.status(400).send({ error: true, message: 'La cédula (CI) del hijo es obligatoria' });
+        if (!fechaNacimiento) return res.status(400).send({ error: true, message: 'La fecha de nacimiento es obligatoria' });
 
-        if (documento && !validarCI(documento)) {
+        if (!validarCI(documento)) {
             return res.status(400).send({ error: true, message: 'La cédula del hijo no es válida' });
         }
 
         const registroActual = await model.getById(req.params.id);
         if (!registroActual) return res.status(404).send({ error: true, message: 'Hijo no encontrado' });
 
-        let idAfiliadoPadre = null;
-        let idAfiliadoMadre = null;
-
-        if (cedulaPadre) {
-            idAfiliadoPadre = await buscarAfiliadoPorDocumento(cedulaPadre);
-            if (!idAfiliadoPadre) return res.status(400).send({ error: true, message: 'La cédula del padre no corresponde a un afiliado activo' });
-        }
-        if (cedulaMadre) {
-            idAfiliadoMadre = await buscarAfiliadoPorDocumento(cedulaMadre);
-            if (!idAfiliadoMadre) return res.status(400).send({ error: true, message: 'La cédula de la madre no corresponde a un afiliado activo' });
+        const existente = await model.findByDocumento(documento, req.params.id);
+        if (existente) {
+            const yaAsociados = [existente.IdAfiliado, existente.IdAfiliadoSecundario].filter(Boolean);
+            if (!yaAsociados.includes(registroActual.IdAfiliado)) {
+                return res.status(400).send({ error: true, message: 'Este hijo ya está asociado a otro afiliado. Utilice "Cambiar titular" para reasignarlo.' });
+            }
         }
 
-        const idAfiliadoSecundario = calcularIdAfiliadoSecundario(registroActual.IdAfiliado, idAfiliadoPadre, idAfiliadoMadre);
-
-        await model.update(req.params.id, { ...req.body, idAfiliadoSecundario });
+        await model.update(req.params.id, { ...req.body, idAfiliadoSecundario: null });
         res.status(200).send({ error: false });
     } catch (err) {
         res.status(500).send({ error: true, message: err.message });
@@ -115,6 +99,24 @@ const validar = async (req, res) => {
     }
 };
 
+const cambiarTitular = async (req, res) => {
+    try {
+        const { idAfiliado } = req.body;
+        if (!idAfiliado) return res.status(400).send({ error: true, message: 'Debe indicar el nuevo afiliado titular' });
+
+        const registroActual = await model.getById(req.params.id);
+        if (!registroActual) return res.status(404).send({ error: true, message: 'Hijo no encontrado' });
+
+        const activo = await verificarAfiliadoActivo(idAfiliado);
+        if (!activo) return res.status(400).send({ error: true, message: 'El afiliado seleccionado no existe o no está activo' });
+
+        await model.cambiarTitular(req.params.id, idAfiliado);
+        res.status(200).send({ error: false });
+    } catch (err) {
+        res.status(500).send({ error: true, message: err.message });
+    }
+};
+
 const remove = async (req, res) => {
     try {
         await model.remove(req.params.id);
@@ -124,4 +126,4 @@ const remove = async (req, res) => {
     }
 };
 
-module.exports = { getByAfiliado, create, update, validar, remove };
+module.exports = { getByAfiliado, create, update, validar, remove, cambiarTitular };
