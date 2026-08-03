@@ -283,33 +283,50 @@ const exportarLicencias = async (req, res) => {
   }
 };
 
+const queryDeudoresLibros = async (req) => {
+  const { fechaDesde, fechaHasta } = req.query;
+  const pool = await db.getConnection();
+  const request = pool.request();
+  let where = '';
+  if (fechaDesde) { where += ' AND pl.FechaVencimiento >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
+  if (fechaHasta) { where += ' AND pl.FechaVencimiento <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+
+  const rs = await request.query(`
+    SELECT
+        a.NroFuncionario,
+        a.PrimerNombre,
+        a.PrimerApellido,
+        a.Celular,
+        a.Telefono,
+        pc.FechaPrestamo,
+        pl.FechaVencimiento,
+        l.Nombre as Libro
+    FROM PrestamoCabezal pc
+    JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
+    JOIN Afiliados a ON a.Id = pc.IdAfiliado
+    JOIN Libros l ON l.Id = pl.IdLibro
+    WHERE pl.FechaDevolucion IS NULL
+    AND pl.FechaVencimiento < GETDATE() ${where}
+    ORDER BY a.PrimerApellido
+  `);
+
+  return rs.recordset;
+};
+
+const getDeudoresLibros = async (req, res) => {
+  try {
+    const data = await queryDeudoresLibros(req);
+    res.status(200).send({ error: false, data });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
 const exportarDeudoresLibros = async (req, res) => {
   try {
-    const { fechaDesde, fechaHasta } = req.query;
-    const pool = await db.getConnection();
-    const request = pool.request();
-    let where = '';
-    if (fechaDesde) { where += ' AND pl.FechaVencimiento >= @fechaDesde'; request.input('fechaDesde', fechaDesde); }
-    if (fechaHasta) { where += ' AND pl.FechaVencimiento <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
+    const data = await queryDeudoresLibros(req);
 
-    const rs = await request.query(`
-      SELECT
-        pc.Id AS NroPrestamo,
-        a.Documento, a.NroFuncionario,
-        a.PrimerNombre + ' ' + a.PrimerApellido AS Afiliado,
-        a.Telefono,
-        l.Nombre AS Libro,
-        pl.FechaPrestamo, pl.FechaVencimiento,
-        DATEDIFF(day, pl.FechaVencimiento, GETDATE()) AS DiasAtraso
-      FROM PrestamoLinea pl
-      INNER JOIN PrestamoCabezal pc ON pl.IdPrestamo = pc.Id
-      INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
-      INNER JOIN Libros l ON pl.IdLibro = l.Id
-      WHERE pl.FechaDevolucion IS NULL AND pl.FechaVencimiento < GETDATE() ${where}
-      ORDER BY pl.FechaVencimiento ASC
-    `);
-
-    const ws = XLSX.utils.json_to_sheet(rs.recordset);
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Deudores');
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -360,4 +377,5 @@ const exportarListadoLibros = async (req, res) => {
 module.exports = {
   getDeudaAfiliado, getConciliacion, exportarAfiliados, exportarBajas, exportarAportes,
   exportarPrestamos, exportarLicencias, exportarDeudoresLibros, exportarListadoLibros,
+  getDeudoresLibros,
 };
