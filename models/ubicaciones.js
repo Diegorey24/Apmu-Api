@@ -4,7 +4,7 @@ const getAll = async function () {
     const pool = await db.getConnection();
     const rs = await pool.request()
         .query(`
-          SELECT Id, Codigo, Tipo, Nombre, Direccion, Correo, Telefono, CuentaBancaria, Banco, EmpresaEnvio
+          SELECT Id, Codigo, Tipo, Nombre, Direccion, Correo, Telefono, CuentaBancaria, Banco, EmpresaEnvio, NroCuenta, TipoCuenta
           FROM Ubicaciones
           ORDER BY Nombre
         `);
@@ -24,8 +24,11 @@ const create = async function (data) {
         .input('codigo', nextCodigo)
         .input('tipo', data.tipo)
         .input('nombre', data.nombre)
-        .query(`INSERT INTO Ubicaciones (Id, Codigo, Tipo, Nombre)
-            VALUES (@id, @codigo, @tipo, @nombre)`);
+        .input('nroCuenta', data.nroCuenta || null)
+        .input('tipoCuenta', data.tipoCuenta || null)
+        .input('banco', data.banco || null)
+        .query(`INSERT INTO Ubicaciones (Id, Codigo, Tipo, Nombre, NroCuenta, TipoCuenta, Banco)
+            VALUES (@id, @codigo, @tipo, @nombre, @nroCuenta, @tipoCuenta, @banco)`);
     return nextId;
 };
 
@@ -35,7 +38,11 @@ const update = async function (id, data) {
         .input('id', id)
         .input('tipo', data.tipo)
         .input('nombre', data.nombre)
-        .query(`UPDATE Ubicaciones SET Tipo = @tipo, Nombre = @nombre
+        .input('nroCuenta', data.nroCuenta || null)
+        .input('tipoCuenta', data.tipoCuenta || null)
+        .input('banco', data.banco || null)
+        .query(`UPDATE Ubicaciones SET Tipo = @tipo, Nombre = @nombre,
+            NroCuenta = @nroCuenta, TipoCuenta = @tipoCuenta, Banco = @banco
             WHERE Id = @id`);
 };
 

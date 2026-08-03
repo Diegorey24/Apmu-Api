@@ -94,58 +94,48 @@ const remove = async function (id) {
         .query('DELETE FROM Beneficios WHERE Id = @id');
 };
 
-const getListadoCanastas = async function (filtros = {}) {
+const getListadoCanastas = async function () {
     const pool = await db.getConnection();
-    const request = pool.request();
-    let where = '';
-    if (filtros.anio) { where += ' AND b.Anio = @anio'; request.input('anio', filtros.anio); }
-
-    const rs = await request.query(`
+    const rs = await pool.request().query(`
       SELECT
-        a.NroFuncionario, a.Documento,
+        a.NroFuncionario, a.Documento, a.PrimerNombre, a.PrimerApellido,
         a.PrimerNombre + ' ' + a.PrimerApellido + ISNULL(' ' + a.SegundoApellido, '') AS NombreCompleto,
-        CASE WHEN EXISTS (
-          SELECT 1 FROM PrestamoCabezal pc WHERE pc.IdAfiliado = a.Id AND pc.Estado = 'Vencido'
-        ) THEN 1 ELSE 0 END AS DeudaLibros,
+        a.IdUbicacion,
         u.Nombre AS Ubicacion,
-        b.Anio, b.FechaEntrega
-      FROM Beneficios b
-      INNER JOIN Afiliados a ON b.IdAfiliado = a.Id
+        CASE WHEN EXISTS (
+          SELECT 1 FROM PrestamoCabezal pc
+          INNER JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
+          WHERE pc.IdAfiliado = a.Id AND pl.FechaDevolucion IS NULL AND pl.FechaVencimiento < GETDATE()
+        ) THEN 1 ELSE 0 END AS DeudaLibros
+      FROM Afiliados a
       LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
-      WHERE b.Tipo = 'Canasta' ${where}
+      WHERE a.Activo = 1
       ORDER BY a.PrimerApellido, a.PrimerNombre
     `);
     return rs.recordset;
 };
 
-const getListadoUtiles = async function (filtros = {}) {
+const getListadoUtiles = async function () {
     const pool = await db.getConnection();
-    const request = pool.request();
-    let where = '';
-    if (filtros.anio) { where += ' AND b.Anio = @anio'; request.input('anio', filtros.anio); }
-
-    const rs = await request.query(`
+    const rs = await pool.request().query(`
       SELECT
-        a.NroFuncionario,
+        a.NroFuncionario, a.Documento, a.PrimerNombre, a.PrimerApellido,
         a.PrimerNombre + ' ' + a.PrimerApellido + ISNULL(' ' + a.SegundoApellido, '') AS NombreSocio,
-        a.Documento,
-        h.PrimerNombre + ' ' + h.PrimerApellido AS NombreHijo,
-        h.FechaNacimiento, h.Sexo,
+        a.IdUbicacion,
         u.Nombre AS Ubicacion,
-        b.Anio, b.FechaEntrega
-      FROM Beneficios b
-      INNER JOIN Afiliados a ON b.IdAfiliado = a.Id
-      INNER JOIN Hijos h ON b.IdHijo = h.Id
+        h.PrimerNombre AS NombreHijo,
+        h.FechaNacimiento, h.Sexo, h.Discapacidad
+      FROM Afiliados a
+      INNER JOIN Hijos h ON h.IdAfiliado = a.Id
       LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
-      WHERE b.Tipo = 'Utiles' ${where}
+      WHERE a.Activo = 1 AND h.FechaNacimiento IS NOT NULL
       ORDER BY a.PrimerApellido, a.PrimerNombre
     `);
 
     const fechaCorte = (await configuracionModel.getByClave('FechaCorteHijos')) || '04-30';
-    return rs.recordset.map(r => ({
-        ...r,
-        Edad: r.FechaNacimiento ? calcularEdadAlCorte(r.FechaNacimiento, fechaCorte) : null,
-    }));
+    return rs.recordset
+        .map(r => ({ ...r, Edad: calcularEdadAlCorte(r.FechaNacimiento, fechaCorte) }))
+        .filter(r => r.Edad >= 3 && (r.Discapacidad ? r.Edad <= 21 : r.Edad <= 18));
 };
 
 module.exports = { getAll, verificarDuplicado, verificarPrestamosVencidos, create, remove, getListadoCanastas, getListadoUtiles };
