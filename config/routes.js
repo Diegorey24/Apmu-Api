@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 /* Routes includes */
-const root = require('../routes/root');
+const auth = require('../routes/auth');
 const afiliados = require('../routes/afiliados');
 const autores = require('../routes/autores');
 const rubros = require('../routes/rubros');
@@ -36,7 +36,7 @@ const arqueo = require('../routes/arqueo');
 
 /* End Routes includes */
 
-router.use('/', root);
+router.use('/', auth);
 router.use('/', afiliados);
 router.use('/', autores);
 router.use('/', rubros);
