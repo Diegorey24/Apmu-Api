@@ -116,7 +116,7 @@ const exportarAfiliados = async (req, res) => {
     if (fechaHasta) { where += ' AND a.FechaIngreso <= @fechaHasta'; request.input('fechaHasta', fechaHasta); }
 
     const rs = await request.query(`
-      SELECT 
+      SELECT
         a.Id, a.Documento, a.NroFuncionario,
         a.PrimerNombre, a.SegundoNombre, a.PrimerApellido, a.SegundoApellido,
         a.FechaNacimiento, a.Sexo, a.EstadoCivil,
@@ -124,7 +124,8 @@ const exportarAfiliados = async (req, res) => {
         a.Domicilio, a.Ciudad, a.Departamento,
         a.Cargo, a.Sector, a.Turno, a.FechaIngreso,
         c.Nombre AS Categoria, u.Nombre AS Ubicacion,
-        a.FechaAlta
+        a.FechaAlta,
+        a.Banco, a.NroCuenta, a.EmpresaEnvio
       FROM Afiliados a
       LEFT JOIN Categorias c ON a.IdCategoria = c.Id
       LEFT JOIN Ubicaciones u ON a.IdUbicacion = u.Id
@@ -132,10 +133,39 @@ const exportarAfiliados = async (req, res) => {
       ORDER BY a.PrimerApellido, a.PrimerNombre
     `);
 
-    const ws = XLSX.utils.json_to_sheet(rs.recordset);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Afiliados');
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Afiliados');
+    ws.columns = [
+      { header: 'Id', key: 'Id', width: 8 },
+      { header: 'Documento', key: 'Documento', width: 12 },
+      { header: 'NroFuncionario', key: 'NroFuncionario', width: 15 },
+      { header: 'PrimerNombre', key: 'PrimerNombre', width: 15 },
+      { header: 'SegundoNombre', key: 'SegundoNombre', width: 15 },
+      { header: 'PrimerApellido', key: 'PrimerApellido', width: 15 },
+      { header: 'SegundoApellido', key: 'SegundoApellido', width: 15 },
+      { header: 'FechaNacimiento', key: 'FechaNacimiento', width: 15 },
+      { header: 'Sexo', key: 'Sexo', width: 8 },
+      { header: 'EstadoCivil', key: 'EstadoCivil', width: 14 },
+      { header: 'Mail', key: 'Mail', width: 25 },
+      { header: 'Celular', key: 'Celular', width: 14 },
+      { header: 'Telefono', key: 'Telefono', width: 14 },
+      { header: 'Domicilio', key: 'Domicilio', width: 22 },
+      { header: 'Ciudad', key: 'Ciudad', width: 15 },
+      { header: 'Departamento', key: 'Departamento', width: 15 },
+      { header: 'Cargo', key: 'Cargo', width: 15 },
+      { header: 'Sector', key: 'Sector', width: 15 },
+      { header: 'Turno', key: 'Turno', width: 12 },
+      { header: 'FechaIngreso', key: 'FechaIngreso', width: 15 },
+      { header: 'Categoria', key: 'Categoria', width: 15 },
+      { header: 'Ubicacion', key: 'Ubicacion', width: 15 },
+      { header: 'FechaAlta', key: 'FechaAlta', width: 15 },
+      { header: 'Banco', key: 'Banco', width: 15 },
+      { header: 'Nº Cuenta', key: 'NroCuenta', width: 15 },
+      { header: 'Empresa envío', key: 'EmpresaEnvio', width: 18 },
+    ];
+    ws.addRows(rs.recordset);
+    const buffer = await wb.xlsx.writeBuffer();
 
     res.setHeader('Content-Disposition', 'attachment; filename=padron_afiliados.xlsx');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -374,8 +404,77 @@ const exportarListadoLibros = async (req, res) => {
   }
 };
 
+const getAfiliadosFilial = async (req, res) => {
+  try {
+    const { idUbicacion } = req.query;
+    if (!idUbicacion) return res.status(400).send({ error: true, message: 'idUbicacion requerido' });
+    const pool = await db.getConnection();
+    const rs = await pool.request()
+      .input('IdUbicacion', db.sql.Int, idUbicacion)
+      .query(`
+        SELECT 
+          a.Id, a.NroFuncionario, a.Documento,
+          a.PrimerNombre, a.SegundoNombre,
+          a.PrimerApellido, a.SegundoApellido,
+          a.Celular, a.Mail,
+          a.Banco, a.NroCuenta, a.EmpresaEnvio
+        FROM Afiliados a
+        WHERE a.IdUbicacion = @IdUbicacion AND a.Activo = 1
+        ORDER BY a.PrimerApellido, a.PrimerNombre
+      `);
+    res.send({ error: false, data: rs.recordset });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+const exportarAfiliadosFilial = async (req, res) => {
+  try {
+    const { idUbicacion } = req.query;
+    if (!idUbicacion) return res.status(400).send({ error: true, message: 'idUbicacion requerido' });
+    const pool = await db.getConnection();
+    const rs = await pool.request()
+      .input('IdUbicacion', db.sql.Int, idUbicacion)
+      .query(`
+        SELECT 
+          a.NroFuncionario, a.Documento,
+          a.PrimerNombre, a.SegundoNombre,
+          a.PrimerApellido, a.SegundoApellido,
+          a.Celular, a.Mail,
+          a.Banco, a.NroCuenta, a.EmpresaEnvio
+        FROM Afiliados a
+        WHERE a.IdUbicacion = @IdUbicacion AND a.Activo = 1
+        ORDER BY a.PrimerApellido, a.PrimerNombre
+      `);
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Afiliados por filial');
+    ws.columns = [
+      { header: 'Nº Funcionario', key: 'NroFuncionario', width: 15 },
+      { header: 'Documento', key: 'Documento', width: 12 },
+      { header: 'Nombre', key: 'PrimerNombre', width: 15 },
+      { header: 'Segundo nombre', key: 'SegundoNombre', width: 15 },
+      { header: 'Apellido', key: 'PrimerApellido', width: 15 },
+      { header: 'Segundo apellido', key: 'SegundoApellido', width: 15 },
+      { header: 'Celular', key: 'Celular', width: 14 },
+      { header: 'Mail', key: 'Mail', width: 25 },
+      { header: 'Banco', key: 'Banco', width: 15 },
+      { header: 'Nº Cuenta', key: 'NroCuenta', width: 15 },
+      { header: 'Empresa envío', key: 'EmpresaEnvio', width: 18 },
+    ];
+    ws.addRows(rs.recordset);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=afiliados_filial.xlsx');
+    const buffer = await wb.xlsx.writeBuffer();
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
+
 module.exports = {
   getDeudaAfiliado, getConciliacion, exportarAfiliados, exportarBajas, exportarAportes,
   exportarPrestamos, exportarLicencias, exportarDeudoresLibros, exportarListadoLibros,
-  getDeudoresLibros,
+  getDeudoresLibros, getAfiliadosFilial, exportarAfiliadosFilial
 };

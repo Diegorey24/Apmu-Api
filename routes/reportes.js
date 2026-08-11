@@ -12,5 +12,7 @@ router.get('/reportes/exportar/licencias', controller.exportarLicencias);
 router.get('/reportes/deudores-libros', controller.getDeudoresLibros);
 router.get('/reportes/exportar/deudores-libros', controller.exportarDeudoresLibros);
 router.get('/reportes/exportar/libros', controller.exportarListadoLibros);
+router.get('/reportes/afiliados-filial', controller.getAfiliadosFilial);
+router.get('/reportes/afiliados-filial/export', controller.exportarAfiliadosFilial);
 
 module.exports = router;

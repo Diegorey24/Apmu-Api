@@ -74,12 +74,15 @@ const create = async function (a) {
     .input('FechaIngreso', db.sql.Date, a.FechaIngreso || null)
     .input('IdCategoria', db.sql.Int, a.IdCategoria || null)
     .input('IdUbicacion', db.sql.Int, a.IdUbicacion || null)
+    .input('Banco', db.sql.NVarChar(100), a.Banco || null)
+    .input('NroCuenta', db.sql.NVarChar(50), a.NroCuenta || null)
+    .input('EmpresaEnvio', db.sql.NVarChar(100), a.EmpresaEnvio || null)
     .query(`
       INSERT INTO Afiliados (
         Id, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido,
         Ciudad, Localidad, Domicilio, FechaNacimiento, Sexo, Mail, Observacion,
         CodigoPostal, Departamento, EstadoCivil, Celular, Telefono, TelefonoTrabajo,
-        NroFuncionario, Cargo, Sector, Turno, FechaIngreso, IdCategoria, IdUbicacion,
+        NroFuncionario, Cargo, Sector, Turno, FechaIngreso, IdCategoria, IdUbicacion,Banco, NroCuenta, EmpresaEnvio,
         FechaAlta, Activo
       )
       OUTPUT INSERTED.Id
@@ -87,7 +90,7 @@ const create = async function (a) {
         @Id, @Documento, @PrimerNombre, @SegundoNombre, @PrimerApellido, @SegundoApellido,
         @Ciudad, @Localidad, @Domicilio, @FechaNacimiento, @Sexo, @Mail, @Observacion,
         @CodigoPostal, @Departamento, @EstadoCivil, @Celular, @Telefono, @TelefonoTrabajo,
-        @NroFuncionario, @Cargo, @Sector, @Turno, @FechaIngreso, @IdCategoria, @IdUbicacion,
+        @NroFuncionario, @Cargo, @Sector, @Turno, @FechaIngreso, @IdCategoria, @IdUbicacion,@Banco, @NroCuenta, @EmpresaEnvio,
         GETDATE(), 1
       )
     `);
@@ -124,6 +127,9 @@ const update = async function (id, a) {
     .input('FechaIngreso', db.sql.Date, a.FechaIngreso || null)
     .input('IdCategoria', db.sql.Int, a.IdCategoria || null)
     .input('IdUbicacion', db.sql.Int, a.IdUbicacion || null)
+    .input('Banco', db.sql.NVarChar(100), a.Banco || null)
+    .input('NroCuenta', db.sql.NVarChar(50), a.NroCuenta || null)
+    .input('EmpresaEnvio', db.sql.NVarChar(100), a.EmpresaEnvio || null)
     .query(`
       UPDATE Afiliados SET
         Documento               = @Documento,
@@ -152,6 +158,9 @@ const update = async function (id, a) {
         FechaIngreso            = @FechaIngreso,
         IdCategoria             = @IdCategoria,
         IdUbicacion             = @IdUbicacion,
+        Banco                   = @Banco,
+        NroCuenta               = @NroCuenta,
+        EmpresaEnvio            = @EmpresaEnvio,
         FechaUltimaModificacion = GETDATE()
       WHERE Id = @Id AND Activo = 1
     `);
