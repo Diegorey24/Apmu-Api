@@ -23,7 +23,7 @@ app.use(cors());
 app.use(
   authenticateToken({
     allowUrls: [
-      { url: '^/auth/login$', method: 'POST' },
+      { url: '^/authenticate$', method: 'POST' },
       { url: '/portal/registrar', method: 'POST' },
       { url: '/portal/login', method: 'POST' },
       { url: '/portal/mis-datos', method: 'GET' },
