@@ -64,4 +64,28 @@ const hashPlaintextPasswords = async function () {
   }
 };
 
-module.exports = { authenticate, hashPlaintextPasswords };
+/**
+ * Cambia la contraseña de un usuario interno, validando la actual con bcrypt.
+ * Lanza un Error con mensaje legible si el usuario no existe o la actual no matchea.
+ */
+const cambiarPassword = async function (id, passwordActual, passwordNueva) {
+  const pool = await db.getConnection();
+
+  const rs = await pool.request()
+    .input('Id', db.sql.Int, id)
+    .query('SELECT Id, Password FROM Usuarios WHERE Id = @Id');
+
+  const user = rs.recordset[0];
+  if (!user) throw new Error('Usuario no encontrado');
+
+  const match = await bcrypt.compare(passwordActual, user.Password);
+  if (!match) throw new Error('Contraseña actual incorrecta');
+
+  const hash = await bcrypt.hash(passwordNueva, 10);
+  await pool.request()
+    .input('Id', db.sql.Int, id)
+    .input('Password', db.sql.VarChar(255), hash)
+    .query('UPDATE Usuarios SET Password = @Password WHERE Id = @Id');
+};
+
+module.exports = { authenticate, hashPlaintextPasswords, cambiarPassword };

@@ -88,7 +88,25 @@ const cambiarPassword = async (req, res) => {
     if (passwordNueva.length < 6) return res.status(400).send({ error: true, message: 'La contraseña nueva debe tener al menos 6 caracteres' });
     if (passwordActual === passwordNueva) return res.status(400).send({ error: true, message: 'La nueva contraseña debe ser diferente a la actual' });
 
-    await model.cambiarPassword(decoded.idAfiliado, passwordActual, passwordNueva);
+    await model.cambiarPassword(decoded.documento, passwordActual, passwordNueva);
+    res.status(200).send({ error: false, message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    res.status(400).send({ error: true, message: err.message });
+  }
+};
+
+// PUT /portal/cambiar-password — protegida por el middleware authenticatePortal,
+// que ya validó el token y dejó el usuario en req.user. No requiere pasar el id por URL.
+const cambiarPasswordConToken = async (req, res) => {
+  try {
+    if (!req.user?.documento) return res.status(401).send({ error: true, message: 'Token inválido' });
+
+    const { passwordActual, passwordNueva } = req.body;
+    if (!passwordActual || !passwordNueva) return res.status(400).send({ error: true, message: 'Faltan datos' });
+    if (passwordNueva.length < 6) return res.status(400).send({ error: true, message: 'La contraseña nueva debe tener al menos 6 caracteres' });
+    if (passwordActual === passwordNueva) return res.status(400).send({ error: true, message: 'La nueva contraseña debe ser diferente a la actual' });
+
+    await model.cambiarPassword(req.user.documento, passwordActual, passwordNueva);
     res.status(200).send({ error: false, message: 'Contraseña actualizada correctamente' });
   } catch (err) {
     res.status(400).send({ error: true, message: err.message });
@@ -219,4 +237,4 @@ const getAllUsuarios = async (req, res) => {
   }
 };
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes, resetPassword, eliminarSolicitud, crearDesdeAdmin, getAllUsuarios };
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getMisDatos, cambiarPassword, cambiarPasswordConToken, actualizarContacto, getMisHijos, solicitarLibro, getMisSolicitudes, resetPassword, eliminarSolicitud, crearDesdeAdmin, getAllUsuarios };

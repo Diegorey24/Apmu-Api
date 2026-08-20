@@ -9,6 +9,7 @@ const app = express();
 const config = require('./config/routes');
 const { authenticateToken } = require('./middlewares/authenticateToken');
 const usersModel = require('./models/users');
+const portalModel = require('./models/portal');
 
 const __PORT__ = process.env.APP_PORT || 8080;
 
@@ -28,6 +29,7 @@ app.use(
       { url: '/portal/login', method: 'POST' },
       { url: '/portal/mis-datos', method: 'GET' },
       { url: '/portal/cambiar-password', method: 'PATCH' },
+      { url: '/portal/cambiar-password', method: 'PUT' },
       { url: '/solicitudes-afiliacion', method: 'POST' },
       { url: '/solicitudes-afiliacion', method: 'POST' },
       { url: '/ubicaciones', method: 'GET' },
@@ -61,6 +63,12 @@ const start = async () => {
     await usersModel.hashPlaintextPasswords();
   } catch (err) {
     console.error('No se pudieron migrar los passwords de Usuarios:', err.message);
+  }
+
+  try {
+    await portalModel.hashPlaintextPasswords();
+  } catch (err) {
+    console.error('No se pudieron migrar los passwords de UsuariosPortal:', err.message);
   }
 
   const server = app.listen(__PORT__);

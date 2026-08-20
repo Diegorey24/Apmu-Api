@@ -1,4 +1,7 @@
 const db = require('../helpers/db');
+const bcrypt = require('bcryptjs');
+
+const BCRYPT_REGEX = /^\$2[aby]\$\d{2}\$/;
 
 const registrar = async function (documento, email, password) {
   const pool = await db.getConnection();
@@ -19,11 +22,13 @@ const registrar = async function (documento, email, password) {
     .query('SELECT Id FROM Afiliados WHERE Documento = @documento AND Activo = 1');
   const idAfiliado = afiliado.recordset[0]?.Id || null;
 
+  const hash = await bcrypt.hash(password, 10);
+
   await pool.request()
     .input('id', nextId)
     .input('documento', documento)
     .input('email', email || null)
-    .input('password', password)
+    .input('password', hash)
     .input('idAfiliado', idAfiliado)
     .query(`
       INSERT INTO UsuariosPortal (Id, Documento, Email, Password, Estado, IdAfiliado)
@@ -48,7 +53,9 @@ const login = async function (documento, password) {
   if (!usuario) throw new Error('Documento o contraseña incorrectos');
   if (usuario.Estado === 'Pendiente') throw new Error('Tu solicitud está pendiente de aprobación');
   if (usuario.Estado === 'Bloqueado') throw new Error('Tu acceso está bloqueado, contactá a APMU');
-  if (password !== usuario.Password.trim()) throw new Error('Documento o contraseña incorrectos');
+
+  const match = await bcrypt.compare(password, usuario.Password);
+  if (!match) throw new Error('Documento o contraseña incorrectos');
 
   return usuario;
 };
@@ -167,20 +174,24 @@ const getDatosAfiliado = async function (idAfiliado) {
   };
 };
 
-const cambiarPassword = async function (idAfiliado, passwordActual, passwordNueva) {
+const cambiarPassword = async function (documento, passwordActual, passwordNueva) {
   const pool = await db.getConnection();
+
   const rs = await pool.request()
-    .input('idAfiliado', idAfiliado)
-    .query('SELECT Id, Password FROM UsuariosPortal WHERE IdAfiliado = @idAfiliado AND Estado = \'Habilitado\'');
+    .input('documento', documento)
+    .query('SELECT Id, Password FROM UsuariosPortal WHERE Documento = @documento AND Estado IN (\'Aprobado\', \'Habilitado\')');
 
   const usuario = rs.recordset[0];
   if (!usuario) throw new Error('Usuario no encontrado');
-  if (passwordActual !== usuario.Password.trim()) throw new Error('La contraseña actual es incorrecta');
 
+  const match = await bcrypt.compare(passwordActual, usuario.Password);
+  if (!match) throw new Error('La contraseña actual es incorrecta');
+
+  const hash = await bcrypt.hash(passwordNueva, 10);
   await pool.request()
-    .input('idAfiliado', idAfiliado)
-    .input('password', passwordNueva)
-    .query('UPDATE UsuariosPortal SET Password = @password WHERE IdAfiliado = @idAfiliado');
+    .input('documento', documento)
+    .input('password', hash)
+    .query('UPDATE UsuariosPortal SET Password = @password WHERE Documento = @documento');
 };
 
 const resetPassword = async function (id, nuevaPassword) {
@@ -189,9 +200,10 @@ const resetPassword = async function (id, nuevaPassword) {
     .input('id', id)
     .query('SELECT Id, Estado FROM UsuariosPortal WHERE Id = @id');
   if (!rs.recordset[0]) throw new Error('Usuario no encontrado');
+  const hash = await bcrypt.hash(nuevaPassword, 10);
   await pool.request()
     .input('id', id)
-    .input('password', nuevaPassword)
+    .input('password', hash)
     .query('UPDATE UsuariosPortal SET Password = @password WHERE Id = @id');
 };
 
@@ -223,11 +235,13 @@ const crearDesdeAdmin = async function (documento, password) {
     .input('id', afiliado.recordset[0].Id)
     .query('SELECT Mail FROM Afiliados WHERE Id = @id');
 
+  const hash = await bcrypt.hash(password, 10);
+
   await pool.request()
     .input('id', nextId)
     .input('documento', documento)
     .input('email', mail.recordset[0]?.Mail || null)
-    .input('password', password)
+    .input('password', hash)
     .input('idAfiliado', afiliado.recordset[0].Id)
     .query(`
       INSERT INTO UsuariosPortal (Id, Documento, Email, Password, Estado, IdAfiliado, FechaRegistro, FechaAprobacion, UsuarioAprobacion)
@@ -251,4 +265,26 @@ const getAll = async function () {
 
 
 
-module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword, resetPassword, eliminar, crearDesdeAdmin, getAll };
+/**
+ * Migración idempotente: hashea con bcrypt cualquier password de la tabla
+ * UsuariosPortal que todavía esté en texto plano (no tenga formato bcrypt).
+ * Pensada para correrse al arrancar el servidor, igual que la de Usuarios.
+ */
+const hashPlaintextPasswords = async function () {
+  const pool = await db.getConnection();
+  const rs = await pool.request().query('SELECT Id, Password FROM UsuariosPortal');
+
+  for (const row of rs.recordset) {
+    if (!row.Password || BCRYPT_REGEX.test(row.Password)) continue;
+
+    const hash = await bcrypt.hash(row.Password.trim(), 10);
+    await pool.request()
+      .input('Id', db.sql.Int, row.Id)
+      .input('Password', db.sql.VarChar(255), hash)
+      .query('UPDATE UsuariosPortal SET Password = @Password WHERE Id = @Id');
+
+    console.log(`[migración] Password hasheada para UsuarioPortal Id=${row.Id}`);
+  }
+};
+
+module.exports = { registrar, login, getPendientes, aprobar, rechazar, getDatosAfiliado, cambiarPassword, resetPassword, eliminar, crearDesdeAdmin, getAll, hashPlaintextPasswords };

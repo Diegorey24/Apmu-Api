@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const controller = require('../controllers/portal');
+const { authenticatePortal } = require('../middlewares/authenticatePortal');
 const router = Router();
 
 router.post('/portal/registrar', controller.registrar);
@@ -11,6 +12,7 @@ router.get('/portal/usuarios', controller.getAllUsuarios);
 router.patch('/portal/:id/aprobar', controller.aprobar);
 router.patch('/portal/:id/rechazar', controller.rechazar);
 router.patch('/portal/cambiar-password', controller.cambiarPassword);
+router.put('/portal/cambiar-password', authenticatePortal, controller.cambiarPasswordConToken);
 router.patch('/portal/contacto', controller.actualizarContacto);
 router.get('/portal/mis-hijos', controller.getMisHijos);
 router.post('/portal/solicitar-libro', controller.solicitarLibro);
