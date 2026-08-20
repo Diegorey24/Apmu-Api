@@ -43,15 +43,16 @@ const create = async function (data) {
     .input('sector', data.sector || null)
     .input('turno', data.turno || null)
     .input('idUbicacion', data.idUbicacion || null)
+    .input('hijosJson', Array.isArray(data.hijos) && data.hijos.length ? JSON.stringify(data.hijos) : null)
     .query(`
       INSERT INTO SolicitudesAfiliacion (
         Id, NroFuncionario, Documento, PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido,
         FechaNacimiento, EstadoCivil, Mail, Departamento, Domicilio, Telefono, Celular,
-        Cargo, FechaIngreso, Sector, Turno, IdUbicacion
+        Cargo, FechaIngreso, Sector, Turno, IdUbicacion, HijosJson
       ) VALUES (
         @id, @nroFuncionario, @documento, @primerNombre, @segundoNombre, @primerApellido, @segundoApellido,
         @fechaNacimiento, @estadoCivil, @mail, @departamento, @domicilio, @telefono, @celular,
-        @cargo, @fechaIngreso, @sector, @turno, @idUbicacion
+        @cargo, @fechaIngreso, @sector, @turno, @idUbicacion, @hijosJson
       )
     `);
   return nextId;
