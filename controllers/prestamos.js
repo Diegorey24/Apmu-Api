@@ -20,6 +20,17 @@ const getAll = async (req, res) => {
   }
 };
 
+const buscar = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || !q.trim()) return res.status(400).send({ error: true, message: 'Debe indicar un término de búsqueda' });
+    const data = await model.buscar(q);
+    res.status(200).send({ error: false, data });
+  } catch (err) {
+    res.status(500).send({ error: true, message: err.message });
+  }
+};
+
 const getById = async (req, res) => {
   try {
     const data = await model.getById(req.params.id);
@@ -144,5 +155,5 @@ const generarPDF = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, devolver, generarPDF };
+module.exports = { getAll, getById, create, devolver, generarPDF, buscar };
 

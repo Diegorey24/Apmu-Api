@@ -47,6 +47,48 @@ const getAll = async function (filtros = {}) {
   const data = rs.recordset.map(({ TotalRecords, ...row }) => row);
   return { data, total, page, limit };
 };
+const buscar = async function (termino) {
+  const pool = await db.getConnection();
+  const palabras = termino.trim().split(/\s+/).filter(Boolean);
+
+  const request = pool.request();
+  request.input('terminoExacto', termino.trim());
+  request.input('terminoLike', `%${termino.trim()}%`);
+
+  let condicionesNombre = '';
+  palabras.forEach((palabra, i) => {
+    request.input(`palabra${i}`, `%${palabra}%`);
+    condicionesNombre += ` AND NombreCompleto LIKE @palabra${i}`;
+  });
+
+  const rs = await request.query(`
+    SELECT * FROM (
+      SELECT
+        pc.Id, pc.FechaPrestamo, pc.Estado,
+        a.Id AS IdAfiliado,
+        a.PrimerNombre + ' ' + a.PrimerApellido +
+          ISNULL(' ' + a.SegundoApellido, '') AS NombreAfiliado,
+        a.PrimerNombre + ' ' + ISNULL(a.SegundoNombre + ' ', '') + a.PrimerApellido +
+          ISNULL(' ' + a.SegundoApellido, '') AS NombreCompleto,
+        a.Documento, a.NroFuncionario,
+        COUNT(pl.Id) AS CantLibros,
+        SUM(CASE WHEN pl.FechaDevolucion IS NOT NULL THEN 1 ELSE 0 END) AS CantDevueltos
+      FROM PrestamoCabezal pc
+      INNER JOIN Afiliados a ON pc.IdAfiliado = a.Id
+      LEFT JOIN PrestamoLinea pl ON pl.IdPrestamo = pc.Id
+      GROUP BY pc.Id, pc.FechaPrestamo, pc.Estado, a.Id, a.PrimerNombre, a.SegundoNombre, a.PrimerApellido, a.SegundoApellido, a.Documento, a.NroFuncionario
+    ) sub
+    WHERE
+      Id = TRY_CONVERT(int, @terminoExacto)
+      OR Documento LIKE @terminoLike
+      OR NroFuncionario LIKE @terminoLike
+      OR (1=1 ${condicionesNombre})
+    ORDER BY FechaPrestamo DESC
+  `);
+
+  return rs.recordset.map(({ NombreCompleto, ...row }) => row);
+};
+
 const getById = async function (id) {
   const pool = await db.getConnection();
 
@@ -266,4 +308,4 @@ const generarPDF = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, devolver, generarPDF };
+module.exports = { getAll, getById, create, devolver, generarPDF, buscar };
