@@ -130,6 +130,7 @@ const update = async function (id, a) {
     .input('Banco', db.sql.NVarChar(100), a.Banco || null)
     .input('NroCuenta', db.sql.NVarChar(50), a.NroCuenta || null)
     .input('EmpresaEnvio', db.sql.NVarChar(100), a.EmpresaEnvio || null)
+    .input('FechaAlta', db.sql.Date, a.FechaAlta || null)
     .query(`
       UPDATE Afiliados SET
         Documento               = @Documento,
@@ -161,6 +162,7 @@ const update = async function (id, a) {
         Banco                   = @Banco,
         NroCuenta               = @NroCuenta,
         EmpresaEnvio            = @EmpresaEnvio,
+        FechaAlta               = @FechaAlta,
         FechaUltimaModificacion = GETDATE()
       WHERE Id = @Id AND Activo = 1
     `);
