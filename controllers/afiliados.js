@@ -76,7 +76,7 @@ const search = async function (req, res) {
 
 const reactivar = async (req, res) => {
   try {
-    const result = await model.reactivar(req.params.id);
+    const result = await afiliadosModel.reactivar(req.params.id);
     if (!result) return res.status(404).send({ error: true, message: 'Afiliado no encontrado o ya activo' });
     res.status(200).send({ error: false });
   } catch (err) {
